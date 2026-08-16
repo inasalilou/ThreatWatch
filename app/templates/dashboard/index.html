@@ -1,0 +1,96 @@
+{% extends "layout/app.html" %}
+{% block title %}Tableau de bord — {{ app_name }}{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Vue d'ensemble</h1>
+  <p>Synthèse de la veille sécuritaire et des menaces en cours de traitement.</p>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-accent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.alertes_actives }}</div>
+    <div class="stat-card__label">Alertes actives</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4v6c0 5-3.9 8.7-9 10-5.1-1.3-9-5-9-10V6l9-4z"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16" r="0.6" fill="currentColor"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.alertes_critiques }}</div>
+    <div class="stat-card__label">Alertes critiques</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.vulnerabilites_detectees }}</div>
+    <div class="stat-card__label">Vulnérabilités détectées</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.actifs_surveilles }}</div>
+    <div class="stat-card__label">Actifs surveillés</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header">
+    <h2>Dernières alertes de sécurité</h2>
+    <span class="eyebrow">Temps réel</span>
+  </div>
+
+  {% if dernieres_alertes %}
+  <table>
+    <thead>
+      <tr>
+        <th>Référence</th>
+        <th>Vulnérabilité / CVE</th>
+        <th>Priorité</th>
+        <th>Score</th>
+        <th>Statut</th>
+        <th>Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for alerte in dernieres_alertes %}
+      <tr>
+        <td class="mono">{{ alerte.reference }}</td>
+        <td class="mono">{{ alerte.cve }}</td>
+        <td><span class="badge tone-critical">{{ alerte.priorite }}</span></td>
+        <td>{{ alerte.score }}</td>
+        <td><span class="badge tone-neutral">{{ alerte.statut }}</span></td>
+        <td class="mono">{{ alerte.date }}</td>
+        <td><a href="#" class="btn btn-ghost" style="padding: 6px 10px;">Ouvrir</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <p class="title">Aucune alerte disponible pour le moment</p>
+    <p class="sub">Les alertes apparaîtront ici dès que la collecte automatique des bulletins DGSSI sera activée.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

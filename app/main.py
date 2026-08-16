@@ -1,0 +1,58 @@
+"""
+Point d'entrée de l'application FastAPI.
+
+Assemble : middleware de session (authentification), fichiers statiques,
+routeurs (auth, dashboard), et le handler qui transforme une tentative
+d'accès non authentifiée en redirection propre vers /login.
+"""
+from __future__ import annotations
+
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
+
+from app.core.config import settings
+from app.core.deps import RedirectToLogin
+from app.db.database import create_database_tables, get_safe_database_url
+from app.routers import auth, dashboard
+
+# Crée les tables si elles n'existent pas encore (pratique pour la démo ;
+# les prochaines phases pourront basculer entièrement sur Alembic).
+try:
+    create_database_tables()
+except Exception:
+    raise RuntimeError(
+        "Initialisation PostgreSQL impossible pour ThreatWatch. "
+        f"DATABASE_URL={get_safe_database_url()}. "
+        "Verifiez le mot de passe dans .env, le port 5432, le service PostgreSQL "
+        "et l'existence de la base threatwatch."
+    ) from None
+
+app = FastAPI(title=settings.APP_NAME)
+
+# --- Session sécurisée (cookie signé côté serveur via SESSION_SECRET_KEY) ---
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SESSION_SECRET_KEY,
+    session_cookie=settings.SESSION_COOKIE_NAME,
+    max_age=settings.SESSION_MAX_AGE,
+    https_only=settings.SESSION_HTTPS_ONLY,
+    same_site="lax",
+)
+
+# --- Fichiers statiques (CSS/JS) ---
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+@app.exception_handler(RedirectToLogin)
+def handle_redirect_to_login(request: Request, exc: RedirectToLogin):
+    url = "/login"
+    if exc.next_url:
+        url = f"/login?next={exc.next_url}"
+    return RedirectResponse(url=url, status_code=303)
+
+
+# --- Routeurs ---
+app.include_router(auth.router)
+app.include_router(dashboard.router)

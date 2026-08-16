@@ -1,0 +1,95 @@
+{% extends "layout/base.html" %}
+{% block title %}Connexion — {{ app_name }}{% endblock %}
+{% block body %}
+<div class="login-shell">
+
+  <div class="login-shell__form">
+    <div class="login-brand">
+      <div class="login-brand__mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L4 5v6c0 5 3.4 8.7 8 9.9 4.6-1.2 8-4.9 8-9.9V5l-8-3z" fill="#06201d"/>
+        </svg>
+      </div>
+      <div class="login-brand__text">
+        <span class="eyebrow">Veille &amp; réponse</span>
+        <h1>{{ app_name }}</h1>
+      </div>
+    </div>
+
+    <div class="login-form-card">
+      <h2>Connexion</h2>
+      <p class="lead">{{ app_subtitle }}</p>
+
+      {% if error %}
+      <div class="alert-banner" role="alert">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <form method="post" action="/login" data-login-form novalidate>
+        <input type="hidden" name="next" value="{{ next }}" />
+
+        <div class="field">
+          <label for="email">Adresse e-mail</label>
+          <div class="input-wrap">
+            <input type="email" id="email" name="email" value="{{ email }}"
+                   placeholder="prenom.nom@organisation.ma" required autocomplete="username" autofocus />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password">Mot de passe</label>
+          <div class="input-wrap">
+            <input type="password" id="password" name="password" class="has-toggle"
+                   placeholder="••••••••" required autocomplete="current-password"
+                   data-password-input />
+            <button type="button" class="toggle-visibility" data-toggle-password aria-label="Afficher le mot de passe">
+              <svg data-icon-show viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg data-icon-hide viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                <path d="M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a21.6 21.6 0 015.06-6.06M9.9 4.24A10.4 10.4 0 0112 4c7 0 11 7 11 7a21.7 21.7 0 01-2.61 3.68M14.12 14.12a3 3 0 11-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field field-inline">
+          <label class="checkbox">
+            <input type="checkbox" name="remember" id="remember" />
+            <span>Se souvenir de moi</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" data-submit-button>
+          <span data-btn-label>Se connecter</span>
+          <span class="spinner" data-spinner></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="login-shell__visual" aria-hidden="true">
+    <div class="radar">
+      <div class="radar__ring"></div>
+      <div class="radar__ring radar__ring--2"></div>
+      <div class="radar__ring radar__ring--3"></div>
+      <div class="radar__ring radar__ring--4"></div>
+      <div class="radar__sweep"></div>
+      <div class="radar__center"></div>
+      <div class="radar__blip" style="top: 28%; left: 62%; animation-delay: 0.4s;"></div>
+      <div class="radar__blip" style="top: 68%; left: 40%; animation-delay: 1.9s;"></div>
+      <div class="radar__blip" style="top: 45%; left: 78%; animation-delay: 3.1s;"></div>
+    </div>
+    <div class="login-shell__caption">
+      <span class="eyebrow">DGSSI · CVE · Inventaire</span>
+      <p>Surveillance continue des bulletins de sécurité et corrélation automatique avec votre parc applicatif.</p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
