@@ -1,0 +1,21 @@
+{% extends "layout/app.html" %}
+{% block title %}Bulletin introuvable - {{ app_name }}{% endblock %}
+{% block page_title %}Bulletin introuvable{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Bulletin introuvable</h1>
+  <p>Aucun bulletin de securite ne correspond a l'identifiant demande.</p>
+</div>
+
+<div class="panel">
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <p class="title">Aucun resultat</p>
+    <p class="sub mono">{{ bulletin_id }}</p>
+    <p><a href="/bulletins" class="btn btn-ghost">Retour aux bulletins</a></p>
+  </div>
+</div>
+{% endblock %}

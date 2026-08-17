@@ -1,0 +1,250 @@
+{% extends "layout/app.html" %}
+{% block title %}Synchronisations - {{ app_name }}{% endblock %}
+{% block head_extra %}
+  <meta http-equiv="refresh" content="15" />
+{% endblock %}
+{% block page_title %}Synchronisations{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Synchronisations</h1>
+    <p>Suivi des imports DGSSI et des executions automatiques.</p>
+  </div>
+  {% if current_user.role.value == "ADMIN" %}
+  <form method="post" action="/synchronizations/run">
+    <button class="btn btn-primary" type="submit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3.5-7.1"/><path d="M21 3v6h-6"/></svg>
+      Lancer maintenant
+    </button>
+  </form>
+  {% else %}
+  <span class="badge tone-neutral">Lecture seule</span>
+  {% endif %}
+</div>
+
+<span data-auto-refresh-seconds="15" hidden></span>
+
+{% if manual_sync_feedback %}
+<div class="status-banner {{ status_tone(manual_sync_feedback.status) }}">
+  <strong>Synchronisation {{ manual_sync_feedback.status }}</strong>
+  <span>
+    {{ manual_sync_feedback.created }} nouveau{{ "x" if manual_sync_feedback.created and manual_sync_feedback.created > 1 else "" }},
+    {{ manual_sync_feedback.known }} deja connu{{ "s" if manual_sync_feedback.known and manual_sync_feedback.known > 1 else "" }},
+    {{ manual_sync_feedback.cves }} CVE ajoutee{{ "s" if manual_sync_feedback.cves and manual_sync_feedback.cves > 1 else "" }}.
+  </span>
+</div>
+{% endif %}
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ overview.total_runs }}</div>
+    <div class="stat-card__label">Executions tracees</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ overview.successful_runs }}</div>
+    <div class="stat-card__label">Succes</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ overview.partial_runs }}</div>
+    <div class="stat-card__label">Partielles</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ overview.failed_runs }}</div>
+    <div class="stat-card__label">Echecs</div>
+  </div>
+</div>
+
+<div class="sync-config-grid">
+  <div class="panel">
+    <div class="panel__header">
+      <h2>Automatisation</h2>
+      <span class="badge {{ 'tone-success' if scheduler.enabled else 'tone-neutral' }}">
+        {{ "Activee" if scheduler.enabled else "Desactivee" }}
+      </span>
+    </div>
+    <div class="detail-list detail-list--three">
+      <div>
+        <span>Etat scheduler</span>
+        <strong>{{ "En cours" if scheduler.running else "Arrete" }}</strong>
+      </div>
+      <div>
+        <span>Intervalle</span>
+        <strong>{{ scheduler.interval_minutes }} min</strong>
+      </div>
+      <div>
+        <span>Au demarrage</span>
+        <strong>{{ "Oui" if scheduler.on_startup else "Non" }}</strong>
+      </div>
+      <div>
+        <span>Prochaine execution</span>
+        <strong>
+          {% if scheduler.next_run_time %}
+            {{ scheduler.next_run_time.strftime("%d/%m/%Y %H:%M:%S") }}
+          {% else %}
+            -
+          {% endif %}
+        </strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__header">
+      <h2>Derniere synchronisation</h2>
+      {% if overview.latest_sync %}
+      <span class="badge {{ status_tone(overview.latest_sync.status) }}">{{ overview.latest_sync.status.value }}</span>
+      {% endif %}
+    </div>
+    {% if overview.latest_sync %}
+    <div class="detail-list detail-list--three">
+      <div>
+        <span>Source</span>
+        <strong>{{ overview.latest_sync.source }}</strong>
+      </div>
+      <div>
+        <span>Debut</span>
+        <strong>{{ overview.latest_sync.started_at.strftime("%d/%m/%Y %H:%M:%S") }}</strong>
+      </div>
+      <div>
+        <span>Duree</span>
+        <strong>{{ format_duration(overview.latest_sync.started_at, overview.latest_sync.finished_at) }}</strong>
+      </div>
+      <div>
+        <span>Nouveaux</span>
+        <strong>{{ overview.latest_sync.items_created }}</strong>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state empty-state--compact">
+      <p class="title">Aucune synchronisation</p>
+      <p class="sub">Aucun historique DGSSI n'est encore disponible.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header">
+    <div>
+      <h2>Historique</h2>
+      <span class="panel__sub">{{ result.total }} execution{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Source</th>
+          <th>Debut</th>
+          <th>Fin</th>
+          <th>Duree</th>
+          <th>Statut</th>
+          <th>Detectes</th>
+          <th>Nouveaux</th>
+          <th>Mis a jour</th>
+          <th>Erreur</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sync in result.items %}
+        <tr>
+          <td class="mono">{{ sync.source }}</td>
+          <td class="mono">{{ sync.started_at.strftime("%d/%m/%Y %H:%M:%S") }}</td>
+          <td class="mono">
+            {% if sync.finished_at %}
+              {{ sync.finished_at.strftime("%d/%m/%Y %H:%M:%S") }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td class="mono">{{ format_duration(sync.started_at, sync.finished_at) }}</td>
+          <td><span class="badge {{ status_tone(sync.status) }}">{{ sync.status.value }}</span></td>
+          <td class="mono">{{ sync.items_found }}</td>
+          <td class="mono">{{ sync.items_created }}</td>
+          <td class="mono">{{ sync.items_updated }}</td>
+          <td class="error-cell">{{ sync.error_message or "-" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/synchronizations?page={{ result.page - 1 }}">Precedent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Precedent</span>
+    {% endif %}
+
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/synchronizations?page={{ result.page + 1 }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    </div>
+    <p class="title">Aucun historique trouve</p>
+    <p class="sub">Les executions DGSSI apparaitront ici apres synchronisation.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  (() => {
+    if (window.__threatwatchAutoRefreshStarted) return;
+
+    const marker = document.querySelector('[data-auto-refresh-seconds]');
+    if (!marker) return;
+
+    const seconds = Number.parseInt(marker.dataset.autoRefreshSeconds, 10);
+    if (!Number.isFinite(seconds) || seconds < 5) return;
+
+    window.__threatwatchAutoRefreshStarted = true;
+
+    const lastRefresh = document.querySelector('[data-last-refresh-time]');
+    if (lastRefresh) {
+      lastRefresh.textContent = new Date().toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    }
+
+    window.setTimeout(() => {
+      window.location.href = '/synchronizations';
+    }, seconds * 1000);
+  })();
+</script>
+{% endblock %}

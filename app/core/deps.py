@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.db.database import get_db
-from app.models.user import Utilisateur
+from app.models.user import RoleUtilisateur, Utilisateur
 
 
 class RedirectToLogin(StarletteHTTPException):
@@ -53,3 +53,12 @@ def require_authenticated_user(
     if user is None:
         raise RedirectToLogin(next_url=str(request.url.path))
     return user
+
+
+def require_admin_user(
+    current_user: Utilisateur = Depends(require_authenticated_user),
+) -> Utilisateur:
+    """Autorise uniquement les administrateurs connectes."""
+    if current_user.role != RoleUtilisateur.ADMIN:
+        raise StarletteHTTPException(status_code=403, detail="Acces admin requis")
+    return current_user

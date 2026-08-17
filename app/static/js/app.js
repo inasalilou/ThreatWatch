@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPasswordToggle();
   initLoginSubmitLoader();
   initUserMenu();
+  initAutoRefresh();
 });
 
 function initPasswordToggle() {
@@ -53,4 +54,28 @@ function initUserMenu() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') menu.classList.remove('is-open');
   });
+}
+
+function initAutoRefresh() {
+  if (window.__threatwatchAutoRefreshStarted) return;
+
+  const marker = document.querySelector('[data-auto-refresh-seconds]');
+  if (!marker) return;
+
+  const seconds = Number.parseInt(marker.dataset.autoRefreshSeconds, 10);
+  if (!Number.isFinite(seconds) || seconds < 5) return;
+
+  window.__threatwatchAutoRefreshStarted = true;
+  const lastRefresh = document.querySelector('[data-last-refresh-time]');
+  if (lastRefresh) {
+    lastRefresh.textContent = new Date().toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  window.setTimeout(() => {
+    window.location.href = '/synchronizations';
+  }, seconds * 1000);
 }

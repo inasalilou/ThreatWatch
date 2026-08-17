@@ -28,11 +28,10 @@
         </span>
       </li>
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/bulletins" class="nav-item {% if active_page == 'bulletins' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
           Bulletins de sécurité
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
       <li>
         <span class="nav-item is-disabled">
@@ -74,11 +73,10 @@
         </span>
       </li>
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/synchronizations" class="nav-item {% if active_page == 'synchronizations' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 11-3.5-7.1"/><path d="M21 3v6h-6"/></svg>
           Synchronisations
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
       <li>
         <span class="nav-item is-disabled">
@@ -96,9 +94,6 @@
       </li>
     </ul>
 
-    <div class="sidebar__footer">
-      Phase 4 — Interface<br />prochaines briques : collecte DGSSI, alertes, notifications.
-    </div>
   </aside>
 
   <div>

@@ -7,6 +7,8 @@ d'accès non authentifiée en redirection propre vers /login.
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +17,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.core.config import settings
 from app.core.deps import RedirectToLogin
 from app.db.database import create_database_tables, get_safe_database_url
-from app.routers import auth, dashboard
+from app.routers import auth, bulletins, dashboard, synchronizations
+from app.services.scheduler_service import start_scheduler, stop_scheduler
 
 # Crée les tables si elles n'existent pas encore (pratique pour la démo ;
 # les prochaines phases pourront basculer entièrement sur Alembic).
@@ -29,7 +32,17 @@ except Exception:
         "et l'existence de la base threatwatch."
     ) from None
 
-app = FastAPI(title=settings.APP_NAME)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler()
+
+
+app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 
 # --- Session sécurisée (cookie signé côté serveur via SESSION_SECRET_KEY) ---
 app.add_middleware(
@@ -55,4 +68,6 @@ def handle_redirect_to_login(request: Request, exc: RedirectToLogin):
 
 # --- Routeurs ---
 app.include_router(auth.router)
+app.include_router(bulletins.router)
 app.include_router(dashboard.router)
+app.include_router(synchronizations.router)

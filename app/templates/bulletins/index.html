@@ -1,0 +1,154 @@
+{% extends "layout/app.html" %}
+{% block title %}Bulletins de securite - {{ app_name }}{% endblock %}
+{% block page_title %}Bulletins de securite{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Bulletins de securite</h1>
+    <p>Veille securitaire centralisee depuis les sources surveillees.</p>
+  </div>
+  <span class="badge tone-info">Source : DGSSI</span>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-accent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.total_bulletins }}</div>
+    <div class="stat-card__label">Bulletins collectes</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.total_cves }}</div>
+    <div class="stat-card__label">CVE referencees</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4v6c0 5-3.9 8.7-9 10-5.1-1.3-9-5-9-10V6l9-4z"/><line x1="12" y1="8" x2="12" y2="13"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.critical_bulletins }}</div>
+    <div class="stat-card__label">Bulletins critiques</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M4 10h16"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value stat-card__value--date">
+      {% if stats.latest_publication_date %}
+        {{ stats.latest_publication_date.strftime("%d/%m/%Y") }}
+      {% else %}
+        -
+      {% endif %}
+    </div>
+    <div class="stat-card__label">Derniere publication</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>Bulletins enregistres</h2>
+      <span class="panel__sub">{{ result.total }} resultat{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+
+    <form class="filters" method="get" action="/bulletins">
+      <div class="field field--inline">
+        <label for="q">Recherche</label>
+        <input id="q" name="q" type="text" value="{{ result.query }}" placeholder="Rechercher un bulletin, une reference ou une CVE..." />
+      </div>
+
+      <div class="field field--inline">
+        <label for="severity">Risque</label>
+        <select id="severity" name="severity">
+          <option value="">Tous</option>
+          {% for severity in severities %}
+          <option value="{{ severity }}" {% if result.severity == severity %}selected{% endif %}>{{ severity }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+      {% if result.query or result.severity %}
+      <a class="btn btn-ghost" href="/bulletins">Reinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Titre</th>
+          <th>Date de publication</th>
+          <th>Risque</th>
+          <th>Impact</th>
+          <th>CVE</th>
+          <th>Source</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in result.items %}
+        <tr>
+          <td class="mono">{{ item.bulletin.reference }}</td>
+          <td class="table-title">{{ item.bulletin.title }}</td>
+          <td class="mono">{{ item.bulletin.publication_date.strftime("%d/%m/%Y") }}</td>
+          <td>
+            <span class="badge {{ severity_tone(item.bulletin.severity) }}">
+              {{ item.bulletin.severity or "Non evalue" }}
+            </span>
+          </td>
+          <td>{{ item.bulletin.impact_level or "Non evalue" }}</td>
+          <td class="mono">{{ item.cve_count }} CVE</td>
+          <td class="mono">{{ item.bulletin.source }}</td>
+          <td><a href="/bulletins/{{ item.bulletin.id }}" class="btn btn-ghost btn-compact">Voir</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% set query_string = "&q=" ~ result.query|urlencode ~ "&severity=" ~ result.severity|urlencode %}
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/bulletins?page={{ result.page - 1 }}{{ query_string }}">Precedent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Precedent</span>
+    {% endif %}
+
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/bulletins?page={{ result.page + 1 }}{{ query_string }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <p class="title">Aucun bulletin trouve</p>
+    <p class="sub">Modifiez la recherche ou lancez une synchronisation DGSSI depuis le script dedie.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

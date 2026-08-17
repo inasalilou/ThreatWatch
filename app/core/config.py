@@ -39,5 +39,25 @@ class Settings:
     # En production (HTTPS), forcer le cookie "secure"
     SESSION_HTTPS_ONLY: bool = os.getenv("SESSION_HTTPS_ONLY", "false").lower() == "true"
 
+    # --- Collecte DGSSI ---
+    DGSSI_SOURCE_URL: str = os.getenv(
+        "DGSSI_SOURCE_URL",
+        "https://www.dgssi.gov.ma/fr/bulletins-securite",
+    )
+    DGSSI_HTTP_TIMEOUT: float = float(os.getenv("DGSSI_HTTP_TIMEOUT", "30"))
+    DGSSI_USER_AGENT: str = os.getenv(
+        "DGSSI_USER_AGENT",
+        "ThreatWatch/0.2 (+https://github.com/inasalilou/ThreatWatch)",
+    )
+
+    # --- Synchronisation automatique DGSSI ---
+    DGSSI_SYNC_ENABLED: bool = os.getenv("DGSSI_SYNC_ENABLED", "false").lower() == "true"
+    DGSSI_SYNC_INTERVAL_MINUTES: int = int(
+        os.getenv("DGSSI_SYNC_INTERVAL_MINUTES", "60")
+    )
+    DGSSI_SYNC_ON_STARTUP: bool = (
+        os.getenv("DGSSI_SYNC_ON_STARTUP", "false").lower() == "true"
+    )
+
 
 settings = Settings()

@@ -1,0 +1,97 @@
+{% extends "layout/app.html" %}
+{% block title %}{{ bulletin.reference }} - {{ app_name }}{% endblock %}
+{% block page_title %}Detail du bulletin{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="/bulletins" class="back-link">Retour aux bulletins</a>
+    <h1>{{ bulletin.title }}</h1>
+    <p class="mono">{{ bulletin.reference }}</p>
+  </div>
+  <a class="btn btn-ghost" href="{{ bulletin.source_url }}" target="_blank" rel="noopener noreferrer">
+    Voir le bulletin original
+  </a>
+</div>
+
+<div class="detail-grid">
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Informations generales</h2>
+      <span class="badge {{ severity_tone(bulletin.severity) }}">{{ bulletin.severity or "Non evalue" }}</span>
+    </div>
+
+    <div class="detail-list">
+      <div>
+        <span>Reference DGSSI</span>
+        <strong class="mono">{{ bulletin.reference }}</strong>
+      </div>
+      <div>
+        <span>Source</span>
+        <strong>{{ bulletin.source }}</strong>
+      </div>
+      <div>
+        <span>Date de publication</span>
+        <strong>{{ bulletin.publication_date.strftime("%d/%m/%Y") }}</strong>
+      </div>
+      <div>
+        <span>Niveau de risque</span>
+        <strong>{{ bulletin.severity or "Non evalue" }}</strong>
+      </div>
+      <div>
+        <span>Niveau d'impact</span>
+        <strong>{{ bulletin.impact_level or "Non evalue" }}</strong>
+      </div>
+      <div>
+        <span>Date d'import ThreatWatch</span>
+        <strong>{{ bulletin.created_at.strftime("%d/%m/%Y %H:%M") }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__header">
+      <h2>CVE associees</h2>
+      <span class="eyebrow">{{ bulletin.cves|length }} reference{{ "s" if bulletin.cves|length > 1 else "" }}</span>
+    </div>
+    {% if bulletin.cves %}
+    <div class="cve-list">
+      {% for cve in bulletin.cves %}
+      <span class="badge tone-neutral">{{ cve.cve_id }}</span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state empty-state--compact">
+      <p class="title">Aucune CVE associee</p>
+      <p class="sub">Le bulletin DGSSI ne contient pas d'identifiant CVE exploitable.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Resume</h2>
+  </div>
+  <div class="detail-content">
+    {% if bulletin.summary %}
+    <p>{{ bulletin.summary }}</p>
+    {% else %}
+    <p class="muted">Aucun resume disponible.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Description</h2>
+  </div>
+  <div class="detail-content">
+    {% if bulletin.description %}
+    <p>{{ bulletin.description }}</p>
+    {% else %}
+    <p class="muted">Aucune description disponible.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
