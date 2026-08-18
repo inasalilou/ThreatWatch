@@ -59,5 +59,18 @@ class Settings:
         os.getenv("DGSSI_SYNC_ON_STARTUP", "false").lower() == "true"
     )
 
+    # --- Enrichissement CVE via NVD API 2.0 ---
+    NVD_API_BASE_URL: str = os.getenv(
+        "NVD_API_BASE_URL",
+        "https://services.nvd.nist.gov/rest/json/cves/2.0",
+    )
+    NVD_API_KEY: str = os.getenv("NVD_API_KEY", "")
+    NVD_HTTP_TIMEOUT: float = float(os.getenv("NVD_HTTP_TIMEOUT", "30"))
+    NVD_USER_AGENT: str = os.getenv("NVD_USER_AGENT", "ThreatWatch/0.3")
+    NVD_REQUEST_DELAY_SECONDS: float = float(
+        os.getenv("NVD_REQUEST_DELAY_SECONDS", "6")
+    )
+    NVD_BATCH_SIZE: int = int(os.getenv("NVD_BATCH_SIZE", "5"))
+
 
 settings = Settings()

@@ -1,0 +1,213 @@
+{% extends "layout/app.html" %}
+{% block title %}Vulnerabilites / CVE - {{ app_name }}{% endblock %}
+{% block page_title %}Vulnerabilites / CVE{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Vulnerabilites / CVE</h1>
+    <p>Consultation des CVE identifiees depuis les bulletins DGSSI collectes.</p>
+  </div>
+  <span class="badge tone-info">Source interne : DGSSI</span>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-accent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.total_unique_cves }}</div>
+    <div class="stat-card__label">CVE uniques</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.multi_bulletin_cves }}</div>
+    <div class="stat-card__label">CVE multi-bulletins</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4v6c0 5-3.9 8.7-9 10-5.1-1.3-9-5-9-10V6l9-4z"/><line x1="12" y1="8" x2="12" y2="13"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.enriched_cves }}</div>
+    <div class="stat-card__label">CVE enrichies NVD</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.pending_cves }}</div>
+    <div class="stat-card__label">En attente NVD</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>CVE connues</h2>
+      <span class="panel__sub">{{ result.total }} resultat{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+
+    <form class="filters" method="get" action="/vulnerabilities">
+      <div class="field field--inline">
+        <label for="q">Recherche</label>
+        <input id="q" name="q" type="text" value="{{ result.query }}" placeholder="Rechercher une CVE..." />
+      </div>
+
+      <div class="field field--inline">
+        <label for="severity">Risque DGSSI</label>
+        <select id="severity" name="severity">
+          <option value="">Tous</option>
+          {% for severity in severities %}
+          <option value="{{ severity }}" {% if result.severity == severity %}selected{% endif %}>{{ severity }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="source">Source</label>
+        <select id="source" name="source">
+          <option value="">Toutes</option>
+          {% for source in sources %}
+          <option value="{{ source }}" {% if result.source == source %}selected{% endif %}>{{ source }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="enrichment_status">Statut enrichissement</label>
+        <select id="enrichment_status" name="enrichment_status">
+          <option value="">Tous</option>
+          {% for value, label in enrichment_statuses %}
+          <option value="{{ value }}" {% if result.enrichment_status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="cvss_severity">Severite CVSS</label>
+        <select id="cvss_severity" name="cvss_severity">
+          <option value="">Toutes</option>
+          {% for severity in cvss_severities %}
+          <option value="{{ severity }}" {% if result.cvss_severity == severity %}selected{% endif %}>{{ severity }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline field--date">
+        <label for="date_from">Depuis</label>
+        <input id="date_from" name="date_from" type="date" value="{{ result.date_from or '' }}" />
+      </div>
+
+      <div class="field field--inline field--date">
+        <label for="date_to">Jusqu'au</label>
+        <input id="date_to" name="date_to" type="date" value="{{ result.date_to or '' }}" />
+      </div>
+
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+      {% if result.query or result.severity or result.source or result.enrichment_status or result.cvss_severity or result.date_from or result.date_to %}
+      <a class="btn btn-ghost" href="/vulnerabilities">Reinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>CVE</th>
+          <th>Risque DGSSI</th>
+          <th>CVSS NVD</th>
+          <th>CWE</th>
+          <th>Bulletins</th>
+          <th>Statut</th>
+          <th>Date bulletin</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in result.items %}
+        <tr>
+          <td><a href="/vulnerabilities/{{ item.cve_id }}" class="mono cve-link">{{ item.cve_id }}</a></td>
+          <td>
+            <span class="badge {{ severity_tone(item.representative_severity) }}">
+              {{ item.representative_severity }}
+            </span>
+          </td>
+          <td>
+            {% if item.cvss_score is not none %}
+            <span class="cvss-pill">
+              <span class="cvss-pill__score">{{ item.cvss_score }}</span>
+              <span class="badge {{ cvss_tone(item.cvss_severity) }}">{{ item.cvss_severity or "N/A" }}</span>
+              {% if item.cvss_version %}<span class="cvss-pill__version">v{{ item.cvss_version }}</span>{% endif %}
+            </span>
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>
+            {% if item.cwes %}
+            <span class="mono">{{ item.cwes[0] }}</span>
+            {% if item.cwes|length > 1 %}<span class="badge tone-neutral">+{{ item.cwes|length - 1 }}</span>{% endif %}
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td class="mono">{{ item.bulletin_count }}</td>
+          <td>
+            <span class="badge {{ enrichment_status_tone(item.enrichment_status) }}">
+              {{ enrichment_status_label(item.enrichment_status) }}
+            </span>
+          </td>
+          <td class="mono">
+            {% if item.latest_publication_date %}
+              {{ item.latest_publication_date.strftime("%d/%m/%Y") }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% set query_string = "&q=" ~ result.query|urlencode ~ "&severity=" ~ result.severity|urlencode ~ "&source=" ~ result.source|urlencode ~ "&enrichment_status=" ~ result.enrichment_status|urlencode ~ "&cvss_severity=" ~ result.cvss_severity|urlencode ~ "&date_from=" ~ (result.date_from or '')|string|urlencode ~ "&date_to=" ~ (result.date_to or '')|string|urlencode %}
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/vulnerabilities?page={{ result.page - 1 }}{{ query_string }}">Precedent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Precedent</span>
+    {% endif %}
+
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/vulnerabilities?page={{ result.page + 1 }}{{ query_string }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <p class="title">Aucune CVE trouvee</p>
+    <p class="sub">Modifiez la recherche ou synchronisez de nouveaux bulletins DGSSI.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

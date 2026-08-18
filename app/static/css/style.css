@@ -267,7 +267,8 @@ ul { list-style: none; margin: 0; padding: 0; }
 .field .input-wrap { position: relative; }
 .field input[type="email"],
 .field input[type="password"],
-.field input[type="text"] {
+.field input[type="text"],
+.field input[type="date"] {
   width: 100%;
   background: var(--surface-alt);
   border: 1px solid var(--border);
@@ -792,6 +793,33 @@ tbody tr:last-child td { border-bottom: none; }
   min-width: 260px;
   line-height: 1.45;
 }
+.table-title--inline {
+  display: block;
+  min-width: 220px;
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+.cve-link:hover { color: var(--accent); }
+
+.cvss-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.cvss-pill__score {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cvss-pill__version {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
 
 .btn-compact {
   padding: 6px 10px;
@@ -867,8 +895,59 @@ tbody tr:last-child td { border-bottom: none; }
   line-height: 1.65;
 }
 .detail-content p { margin: 0; }
+.detail-content h3 {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  margin: 18px 0 8px;
+}
+.detail-content h3:first-child { margin-top: 0; }
 .muted { color: var(--text-muted); }
 .empty-state--compact { padding: 28px 20px; }
+
+.cvss-vector {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.cve-list--inline {
+  padding: 0;
+}
+
+.reference-list {
+  display: grid;
+  gap: 8px;
+}
+
+.reference-list a {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+}
+
+.reference-list a:hover {
+  border-color: var(--accent-dim);
+}
+
+.reference-list span {
+  color: var(--text-faint);
+  font-size: 11.5px;
+}
+
+.reference-list strong {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
 
 @media (max-width: 900px) {
   .page-header--with-actions,

@@ -17,7 +17,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.core.config import settings
 from app.core.deps import RedirectToLogin
 from app.db.database import create_database_tables, get_safe_database_url
-from app.routers import auth, bulletins, dashboard, synchronizations
+from app.routers import auth, bulletins, dashboard, synchronizations, vulnerabilities
 from app.services.scheduler_service import start_scheduler, stop_scheduler
 
 # Crée les tables si elles n'existent pas encore (pratique pour la démo ;
@@ -71,3 +71,4 @@ app.include_router(auth.router)
 app.include_router(bulletins.router)
 app.include_router(dashboard.router)
 app.include_router(synchronizations.router)
+app.include_router(vulnerabilities.router)

@@ -1,0 +1,224 @@
+{% extends "layout/app.html" %}
+{% block title %}{{ vulnerability.cve_id }} - {{ app_name }}{% endblock %}
+{% block page_title %}Detail CVE{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="/vulnerabilities" class="back-link">Retour aux vulnerabilites</a>
+    <h1 class="mono">{{ vulnerability.cve_id }}</h1>
+    <p>{{ vulnerability.bulletin_count }} bulletin{{ "s" if vulnerability.bulletin_count > 1 else "" }} DGSSI associe{{ "s" if vulnerability.bulletin_count > 1 else "" }}.</p>
+  </div>
+  <span class="badge {{ severity_tone(vulnerability.representative_severity) }}">
+    {{ vulnerability.representative_severity }}
+  </span>
+</div>
+
+<section class="panel">
+  <div class="panel__header">
+    <h2>Informations ThreatWatch / DGSSI</h2>
+    <span class="eyebrow">{{ vulnerability.bulletin_count }} relation{{ "s" if vulnerability.bulletin_count > 1 else "" }}</span>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Reference DGSSI</th>
+          <th>Titre</th>
+          <th>Severite</th>
+          <th>Impact</th>
+          <th>Date</th>
+          <th>Source</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bulletin in vulnerability.bulletins %}
+        <tr>
+          <td class="mono">{{ bulletin.reference }}</td>
+          <td class="table-title">{{ bulletin.title }}</td>
+          <td>
+            <span class="badge {{ severity_tone(bulletin.severity) }}">
+              {{ bulletin.severity or "Non evalue" }}
+            </span>
+          </td>
+          <td>{{ bulletin.impact_level or "Non evalue" }}</td>
+          <td class="mono">{{ bulletin.publication_date.strftime("%d/%m/%Y") }}</td>
+          <td class="mono">{{ bulletin.source }}</td>
+          <td>
+            <a href="/bulletins/{{ bulletin.id }}" class="btn btn-ghost btn-compact">Bulletin</a>
+            <a href="{{ bulletin.source_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-compact">Source</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel detail-panel">
+  {% set enrichment = vulnerability.enrichment %}
+  <div class="panel__header">
+    <div>
+      <h2>Enrichissement NVD</h2>
+      <span class="panel__sub">Informations techniques CVE stockees localement</span>
+    </div>
+    <span class="badge {{ enrichment_status_tone(enrichment.enrichment_status if enrichment else None) }}">
+      {{ enrichment_status_label(enrichment.enrichment_status if enrichment else None) }}
+    </span>
+  </div>
+
+  {% if enrichment and enrichment.enrichment_status.value == "SUCCESS" %}
+  <div class="detail-list detail-list--three">
+    <div>
+      <span>Score CVSS</span>
+      <strong>
+        {% if enrichment.cvss_score is not none %}
+        <span class="cvss-pill">
+          <span class="cvss-pill__score">{{ enrichment.cvss_score }}</span>
+          <span class="badge {{ cvss_tone(enrichment.cvss_severity) }}">{{ enrichment.cvss_severity or "N/A" }}</span>
+        </span>
+        {% else %}
+        Non disponible
+        {% endif %}
+      </strong>
+    </div>
+    <div>
+      <span>Version CVSS</span>
+      <strong>{{ enrichment.cvss_version or "Non disponible" }}</strong>
+    </div>
+    <div>
+      <span>Publication NVD</span>
+      <strong>
+        {% if enrichment.published_at %}
+          {{ enrichment.published_at.strftime("%d/%m/%Y %H:%M") }}
+        {% else %}
+          Non disponible
+        {% endif %}
+      </strong>
+    </div>
+    <div>
+      <span>Modification NVD</span>
+      <strong>
+        {% if enrichment.modified_at %}
+          {{ enrichment.modified_at.strftime("%d/%m/%Y %H:%M") }}
+        {% else %}
+          Non disponible
+        {% endif %}
+      </strong>
+    </div>
+    <div>
+      <span>Dernier enrichissement</span>
+      <strong>
+        {% if enrichment.last_enrichment_at %}
+          {{ enrichment.last_enrichment_at.strftime("%d/%m/%Y %H:%M") }}
+        {% else %}
+          Non disponible
+        {% endif %}
+      </strong>
+    </div>
+    <div>
+      <span>Source</span>
+      <strong>{{ enrichment.enrichment_source or "NVD" }}</strong>
+    </div>
+  </div>
+
+  <div class="detail-content">
+    <h3>Description NVD</h3>
+    <p>{{ enrichment.description or "Aucune description NVD disponible." }}</p>
+
+    <h3>Vecteur CVSS</h3>
+    {% if enrichment.cvss_vector %}
+    <p class="cvss-vector mono">{{ enrichment.cvss_vector }}</p>
+    {% else %}
+    <p class="muted">Aucun vecteur CVSS disponible.</p>
+    {% endif %}
+
+    <h3>CWE</h3>
+    {% if enrichment.cwes %}
+    <div class="cve-list cve-list--inline">
+      {% for cwe in enrichment.cwes %}
+      <span class="badge tone-neutral">{{ cwe }}</span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">Aucun CWE disponible.</p>
+    {% endif %}
+
+    <h3>References externes</h3>
+    {% if enrichment.external_references %}
+    <div class="reference-list">
+      {% for reference in enrichment.external_references[:10] %}
+      <a href="{{ reference.url }}" target="_blank" rel="noopener noreferrer">
+        <span>{{ reference.source or "Reference" }}</span>
+        <strong>{{ reference.url }}</strong>
+      </a>
+      {% endfor %}
+    </div>
+    {% if enrichment.external_references|length > 10 %}
+    <p class="muted">+{{ enrichment.external_references|length - 10 }} reference{{ "s" if enrichment.external_references|length - 10 > 1 else "" }} supplementaire{{ "s" if enrichment.external_references|length - 10 > 1 else "" }}.</p>
+    {% endif %}
+    {% else %}
+    <p class="muted">Aucune reference externe disponible.</p>
+    {% endif %}
+  </div>
+  {% elif enrichment and enrichment.enrichment_status.value == "FAILED" %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">La derniere tentative d'enrichissement a echoue.</p>
+    <p class="sub">{{ enrichment.enrichment_error or "Erreur technique non detaillee." }}</p>
+  </div>
+  {% elif enrichment and enrichment.enrichment_status.value == "NOT_FOUND" %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">CVE introuvable dans NVD</p>
+    <p class="sub">Aucune fiche correspondante n'a ete trouvee lors de la derniere tentative.</p>
+  </div>
+  {% else %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">Enrichissement en attente</p>
+    <p class="sub">Cette CVE n'a pas encore ete enrichie depuis NVD.</p>
+  </div>
+  {% endif %}
+</section>
+
+{% for bulletin in vulnerability.bulletins %}
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <div>
+      <h2>{{ bulletin.reference }}</h2>
+      <span class="panel__sub">{{ bulletin.title }}</span>
+    </div>
+    <span class="badge {{ severity_tone(bulletin.severity) }}">{{ bulletin.severity or "Non evalue" }}</span>
+  </div>
+
+  <div class="detail-list detail-list--three">
+    <div>
+      <span>Reference DGSSI</span>
+      <strong class="mono">{{ bulletin.reference }}</strong>
+    </div>
+    <div>
+      <span>Niveau d'impact</span>
+      <strong>{{ bulletin.impact_level or "Non evalue" }}</strong>
+    </div>
+    <div>
+      <span>Date de publication</span>
+      <strong>{{ bulletin.publication_date.strftime("%d/%m/%Y") }}</strong>
+    </div>
+    <div>
+      <span>URL source</span>
+      <strong><a href="{{ bulletin.source_url }}" target="_blank" rel="noopener noreferrer">Ouvrir</a></strong>
+    </div>
+  </div>
+
+  <div class="detail-content">
+    {% if bulletin.description %}
+    <p>{{ bulletin.description }}</p>
+    {% elif bulletin.summary %}
+    <p>{{ bulletin.summary }}</p>
+    {% else %}
+    <p class="muted">Aucune description disponible pour ce bulletin.</p>
+    {% endif %}
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

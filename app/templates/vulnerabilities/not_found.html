@@ -1,0 +1,21 @@
+{% extends "layout/app.html" %}
+{% block title %}CVE introuvable - {{ app_name }}{% endblock %}
+{% block page_title %}CVE introuvable{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="/vulnerabilities" class="back-link">Retour aux vulnerabilites</a>
+  <h1>CVE introuvable</h1>
+  <p>La reference demandee n'existe pas dans les bulletins ThreatWatch connus.</p>
+</div>
+
+<div class="panel">
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/></svg>
+    </div>
+    <p class="title">{{ cve_id }}</p>
+    <p class="sub">Verifiez l'identifiant ou lancez une nouvelle synchronisation DGSSI.</p>
+  </div>
+</div>
+{% endblock %}

@@ -57,7 +57,7 @@
     {% if bulletin.cves %}
     <div class="cve-list">
       {% for cve in bulletin.cves %}
-      <span class="badge tone-neutral">{{ cve.cve_id }}</span>
+      <a class="badge tone-neutral" href="/vulnerabilities/{{ cve.cve_id }}">{{ cve.cve_id }}</a>
       {% endfor %}
     </div>
     {% else %}
