@@ -8,7 +8,7 @@
   <p>Synthese operationnelle des alertes, vulnerabilites, actifs et traitements.</p>
 </div>
 
-<div class="stat-grid">
+<div class="stat-grid dashboard-stat-grid">
   <div class="stat-card">
     <div class="stat-card__top">
       <div class="stat-card__icon tone-accent">
@@ -50,7 +50,7 @@
   </div>
 </div>
 
-<div class="dashboard-mini-grid">
+<div class="dashboard-mini-grid dashboard-section">
   <div class="panel dashboard-mini-panel">
     <div class="panel__header">
       <h2>File alertes</h2>
@@ -86,7 +86,7 @@
   </div>
 </div>
 
-<section class="panel">
+<section class="panel dashboard-section dashboard-recent-alerts">
   <div class="panel__header">
     <h2>Dernieres alertes SOC</h2>
     <a class="btn btn-ghost btn-compact" href="/alerts">Voir tout</a>
@@ -94,7 +94,7 @@
 
   {% if dashboard.recent_alerts %}
   <div class="table-scroll">
-    <table>
+    <table class="dashboard-table">
       <thead>
         <tr>
           <th>CVE</th>
@@ -127,8 +127,8 @@
   {% endif %}
 </section>
 
-<div class="dashboard-grid">
-  <section class="panel">
+<div class="dashboard-grid dashboard-section">
+  <section class="panel dashboard-nvd-panel">
     <div class="panel__header">
       <h2>Vulnerabilites NVD</h2>
     </div>
@@ -142,7 +142,7 @@
     </div>
   </section>
 
-  <section class="panel">
+  <section class="panel dashboard-sync-panel">
     <div class="panel__header">
       <h2>Derniere synchronisation DGSSI</h2>
     </div>
@@ -177,15 +177,15 @@
   </section>
 </div>
 
-<div class="dashboard-grid">
-  <section class="panel">
+<div class="dashboard-grid dashboard-section">
+  <section class="panel dashboard-exposed-panel">
     <div class="panel__header">
       <h2>Actifs exposes</h2>
       <a class="btn btn-ghost btn-compact" href="/correlations">Correlations</a>
     </div>
     {% if dashboard.top_exposed_assets %}
     <div class="table-scroll">
-      <table>
+      <table class="dashboard-table dashboard-table--compact">
         <thead>
           <tr>
             <th>Actif</th>
@@ -214,7 +214,7 @@
     {% endif %}
   </section>
 
-  <section class="panel">
+  <section class="panel dashboard-treatments-panel">
     <div class="panel__header">
       <h2>Dernieres actions analystes</h2>
       <a class="btn btn-ghost btn-compact" href="/treatments">Traitements</a>
@@ -240,7 +240,7 @@
   </section>
 </div>
 
-<section class="panel">
+<section class="panel dashboard-section dashboard-notifications-panel">
   <div class="panel__header">
     <h2>Notifications recentes</h2>
     <a class="btn btn-ghost btn-compact" href="/notifications">Notifications</a>
