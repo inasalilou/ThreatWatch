@@ -1,0 +1,220 @@
+{% extends "layout/app.html" %}
+{% block title %}Actifs - {{ app_name }}{% endblock %}
+{% block page_title %}Actifs{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Actifs</h1>
+    <p>Inventaire des equipements, applications et services surveilles.</p>
+  </div>
+  {% if current_user.role.value == "ADMIN" %}
+  <a class="btn btn-primary" href="/assets/new">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Ajouter un actif
+  </a>
+  {% else %}
+  <span class="badge tone-neutral">Lecture seule</span>
+  {% endif %}
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.total_assets }}</div>
+    <div class="stat-card__label">Actifs enregistres</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.active_assets }}</div>
+    <div class="stat-card__label">Actifs</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-neutral">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.inactive_assets }}</div>
+    <div class="stat-card__label">Inactifs</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4v6c0 5-3.9 8.7-9 10-5.1-1.3-9-5-9-10V6l9-4z"/><path d="M12 8v5"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.critical_assets }}</div>
+    <div class="stat-card__label">Critiques metier</div>
+  </div>
+</div>
+
+{% if filter_error %}
+<div class="alert-banner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+  <span>{{ filter_error }}</span>
+</div>
+{% endif %}
+
+<div class="panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>Inventaire</h2>
+      <span class="panel__sub">{{ result.total }} resultat{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+
+    <form class="filters" method="get" action="/assets">
+      <div class="field field--inline">
+        <label for="q">Recherche</label>
+        <input id="q" name="q" type="text" value="{{ result.search }}" placeholder="Nom, hostname, IP, vendor, produit..." />
+      </div>
+
+      <div class="field field--inline">
+        <label for="asset_type">Type</label>
+        <select id="asset_type" name="asset_type">
+          <option value="">Tous</option>
+          {% for value, label in asset_types %}
+          <option value="{{ value }}" {% if result.asset_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="criticality">Criticite</label>
+        <select id="criticality" name="criticality">
+          <option value="">Toutes</option>
+          {% for value, label in criticalities %}
+          <option value="{{ value }}" {% if result.criticality == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="environment">Environnement</label>
+        <select id="environment" name="environment">
+          <option value="">Tous</option>
+          {% for value, label in environments %}
+          <option value="{{ value }}" {% if result.environment == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="status">Statut</label>
+        <select id="status" name="status">
+          <option value="">Tous</option>
+          <option value="active" {% if status_filter == "active" %}selected{% endif %}>Actif</option>
+          <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactif</option>
+        </select>
+      </div>
+
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+      {% if result.search or result.asset_type or result.criticality or result.environment or status_filter %}
+      <a class="btn btn-ghost" href="/assets">Reinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Type</th>
+          <th>Hostname / IP</th>
+          <th>Produit</th>
+          <th>Version</th>
+          <th>Criticite</th>
+          <th>Environnement</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asset in result.items %}
+        <tr>
+          <td>
+            <a class="table-title cve-link" href="/assets/{{ asset.id }}">{{ asset.name }}</a>
+          </td>
+          <td>{{ asset_type_label(asset.asset_type) }}</td>
+          <td>
+            {% if asset.hostname %}<span class="mono">{{ asset.hostname }}</span>{% endif %}
+            {% if asset.hostname and asset.ip_address %}<span class="muted"> / </span>{% endif %}
+            {% if asset.ip_address %}<span class="mono">{{ asset.ip_address }}</span>{% endif %}
+            {% if not asset.hostname and not asset.ip_address %}-{% endif %}
+          </td>
+          <td>{{ asset.vendor or "-" }}{% if asset.vendor and asset.product %} / {% endif %}{{ asset.product or "" }}</td>
+          <td class="mono">{{ asset.product_version or "-" }}</td>
+          <td><span class="badge {{ criticality_tone(asset.criticality) }}">{{ criticality_label(asset.criticality) }}</span></td>
+          <td><span class="badge {{ environment_tone(asset.environment) }}">{{ environment_label(asset.environment) }}</span></td>
+          <td><span class="badge {{ status_tone(asset.is_active) }}">{{ asset_status_label(asset.is_active) }}</span></td>
+          <td>
+            <div class="table-actions">
+              <a class="btn btn-ghost btn-compact" href="/assets/{{ asset.id }}">Voir</a>
+              {% if current_user.role.value == "ADMIN" %}
+              <a class="btn btn-ghost btn-compact" href="/assets/{{ asset.id }}/edit">Modifier</a>
+              {% if asset.is_active %}
+              <form method="post" action="/assets/{{ asset.id }}/disable" onsubmit="return confirm('Confirmer la desactivation de cet actif ?');">
+                {{ csrf_input(request) | safe }}
+                <button class="btn btn-ghost btn-compact" type="submit">Desactiver</button>
+              </form>
+              {% else %}
+              <form method="post" action="/assets/{{ asset.id }}/enable">
+                {{ csrf_input(request) | safe }}
+                <button class="btn btn-ghost btn-compact" type="submit">Reactiver</button>
+              </form>
+              {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/assets?page={{ result.page - 1 }}&{{ pagination_query }}">Precedent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Precedent</span>
+    {% endif %}
+
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/assets?page={{ result.page + 1 }}&{{ pagination_query }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+    </div>
+    <p class="title">Aucun actif enregistre</p>
+    {% if current_user.role.value == "ADMIN" %}
+    <p class="sub">Ajoutez un premier actif pour constituer l'inventaire surveille.</p>
+    <div class="empty-state__actions">
+      <a class="btn btn-primary" href="/assets/new">Ajouter un actif</a>
+    </div>
+    {% else %}
+    <p class="sub">L'inventaire sera consultable ici des qu'un administrateur aura ajoute des actifs.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

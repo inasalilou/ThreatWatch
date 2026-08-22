@@ -20,6 +20,8 @@ except ImportError:  # pragma: no cover - dependance installee via requirements.
 
 from app.core.config import settings
 from app.db.database import SessionLocal
+from app.models.sync_history import SyncStatus
+from app.services.soc_orchestration_service import process_pending_security_pipeline
 from app.services.synchronization_service import sync_dgssi_bulletins
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,18 @@ def run_scheduled_dgssi_sync() -> None:
             result.items_created,
             result.items_known,
         )
+        if result.status in {SyncStatus.SUCCESS, SyncStatus.PARTIAL}:
+            pipeline_result = process_pending_security_pipeline(db)
+            _log_info(
+                "[SOC Pipeline] Scheduler run completed: selected=%s success=%s "
+                "matches=%s alerts=%s notifications=%s duration=%ss",
+                pipeline_result.selected_vulnerabilities,
+                pipeline_result.enriched_success,
+                pipeline_result.matches,
+                pipeline_result.alerts_created_or_updated,
+                pipeline_result.notifications_created_or_updated,
+                pipeline_result.duration_seconds,
+            )
     except Exception as exc:  # le scheduler ne doit jamais arreter FastAPI
         _log_exception("[DGSSI Scheduler] ERROR: automatic synchronization failed: %s", exc)
     finally:

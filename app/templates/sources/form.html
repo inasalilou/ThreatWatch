@@ -1,0 +1,88 @@
+{% extends "layout/app.html" %}
+{% set is_edit = mode == "edit" %}
+{% block title %}{{ "Modifier une source" if is_edit else "Ajouter une source" }} - {{ app_name }}{% endblock %}
+{% block page_title %}{{ "Modifier une source" if is_edit else "Ajouter une source" }}{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="{{ '/sources/' ~ source.id if is_edit and source else '/sources' }}" class="back-link">Retour</a>
+    <h1>{{ "Modifier une source" if is_edit else "Ajouter une source" }}</h1>
+    <p>{{ "Mettre a jour la configuration de veille." if is_edit else "Declarer une source de bulletins surveillee." }}</p>
+  </div>
+</div>
+
+<form class="asset-form" method="post" action="{{ '/sources/' ~ source.id ~ '/edit' if is_edit and source else '/sources' }}">
+  {{ csrf_input(request) | safe }}
+  {% if error %}
+  <div class="alert-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Identification</h2>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="name">Nom *</label>
+        <input id="name" name="name" type="text" value="{{ form_data.name }}" required />
+      </div>
+      <div class="field">
+        <label for="code">Code *</label>
+        <input id="code" name="code" type="text" value="{{ form_data.code }}" required />
+      </div>
+      <div class="field">
+        <label for="source_type">Type *</label>
+        <select id="source_type" name="source_type" required>
+          {% for value, label in source_types %}
+          <option value="{{ value }}" {% if form_data.source_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="base_url">URL *</label>
+        <input id="base_url" name="base_url" type="text" value="{{ form_data.base_url }}" placeholder="https://example.org/bulletins" required />
+      </div>
+    </div>
+  </section>
+
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Synchronisation</h2>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="sync_interval_minutes">Intervalle minutes *</label>
+        <input id="sync_interval_minutes" name="sync_interval_minutes" type="text" value="{{ form_data.sync_interval_minutes }}" required />
+      </div>
+      <div class="field">
+        <label for="sync_enabled">Sync activee</label>
+        <label class="checkbox-field">
+          <input id="sync_enabled" name="sync_enabled" type="checkbox" {% if form_data.sync_enabled %}checked{% endif %} />
+          <span>Autoriser la synchronisation de cette source</span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Description</h2>
+    </div>
+    <div class="form-grid form-grid--single">
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="5">{{ form_data.description }}</textarea>
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" href="{{ '/sources/' ~ source.id if is_edit and source else '/sources' }}">Annuler</a>
+    <button class="btn btn-primary" type="submit">{{ "Enregistrer" if is_edit else "Creer la source" }}</button>
+  </div>
+</form>
+{% endblock %}

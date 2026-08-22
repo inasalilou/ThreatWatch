@@ -1,128 +1,103 @@
-# Plateforme de Veille Sécuritaire — Phase 4 (Interface utilisateur, v1)
+# ThreatWatch
 
-Cette première version couvre **uniquement** : connexion, session, layout
-(sidebar + navbar), page Dashboard (structure), déconnexion.
-Alertes, bulletins, CVE, actifs, traitements et collecte DGSSI arriveront
-dans les prochaines phases — le menu les affiche déjà (grisées, badge
-« bientôt ») pour montrer l'architecture cible à l'encadrant.
+Application PFE de veille securitaire et de traitement SOC.
 
-## Arborescence
+ThreatWatch collecte des bulletins DGSSI, extrait les CVE, enrichit les
+vulnerabilites via NVD, correle les CVE avec l'inventaire des actifs, genere
+des alertes SOC priorisees, puis permet le suivi analyste jusqu'a la cloture.
 
-```
-soc-platform/
-├── app/
-│   ├── main.py                 # Point d'entrée FastAPI (middleware, routers, static)
-│   ├── core/
-│   │   ├── config.py           # Paramètres (lus depuis .env)
-│   │   ├── security.py         # Hash / vérification des mots de passe (bcrypt)
-│   │   ├── deps.py             # Dépendances d'auth (get_current_user, protection de route)
-│   │   └── templating.py       # Instance Jinja2Templates partagée
-│   ├── db/
-│   │   └── database.py         # Engine SQLAlchemy, session, Base déclarative
-│   ├── models/
-│   │   └── user.py             # Modèle Utilisateur (id, nom, email, role, actif, ...)
-│   ├── services/
-│   │   └── auth_service.py     # Logique métier de l'authentification
-│   ├── routers/
-│   │   ├── auth.py             # /login (GET/POST), /logout, /
-│   │   └── dashboard.py        # /dashboard (protégée)
-│   ├── templates/
-│   │   ├── layout/base.html    # <head> commun
-│   │   ├── layout/app.html     # Sidebar + navbar (héritée par les pages protégées)
-│   │   ├── auth/login.html
-│   │   └── dashboard/index.html
-│   └── static/
-│       ├── css/style.css       # Design system (couleurs, typo, composants)
-│       └── js/app.js           # Toggle mot de passe, loader, menu utilisateur
-├── scripts/
-│   └── seed_admin.py           # Crée un utilisateur de test
-├── requirements.txt
-├── .env.example
-└── README.md
+## Fonctionnalites validees
+
+- Authentification par session signee, roles `ADMIN` et `ANALYSTE`.
+- Collecte DGSSI et historique des synchronisations.
+- Catalogue des bulletins et des vulnerabilites CVE.
+- Enrichissement NVD controle, avec produits/CPE affectes.
+- Inventaire des actifs et correlations `MATCH`, `POSSIBLE_MATCH`, `NO_MATCH`, `UNKNOWN`.
+- Alertes SOC issues des correlations `MATCH`, avec anti-doublon.
+- Priorite SOC explicable, distincte de la severite CVSS.
+- Traitements analystes : prise en charge, commentaire, resolution, cloture.
+- Notifications `IN_APP` et preparation `EMAIL` sans envoi obligatoire.
+- Sources de veille, utilisateurs, parametres applicatifs non sensibles.
+- Pipeline SOC post-synchronisation, sans batch massif.
+- Dashboard SOC final.
+- Protection CSRF centralisee sur les formulaires POST authentifies.
+
+## Prerequis
+
+- Python 3.12 ou plus recent.
+- PostgreSQL local avec une base `threatwatch`.
+- Un environnement virtuel `.venv`.
+
+## Installation locale
+
+```powershell
+cd C:\Users\hp\Downloads\ThreatWatch
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-**Séparation des responsabilités** : les routes (`routers/`) ne font que
-recevoir la requête et appeler un service ; la logique métier vit dans
-`services/` ; l'accès aux données passe par SQLAlchemy (`models/`, `db/`) ;
-la présentation est dans `templates/` + `static/`. Aucune logique n'est
-mélangée dans un seul fichier.
+Renseigner ensuite `.env` avec les valeurs locales. Ne jamais commiter `.env`.
 
-## Installation
+Initialisation minimale :
 
-```bash
-cd soc-platform
-python3 -m venv venv
-source venv/bin/activate        # Windows : venv\Scripts\activate
-pip install -r requirements.txt
-
-cp .env.example .env            # puis éditez SESSION_SECRET_KEY
-
-### Utiliser PostgreSQL (option recommandé pour la démo finale)
-
-1. Créez la base de données PostgreSQL (exemple local) :
-
-```bash
-createdb threatwatch
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_admin.py
+.\.venv\Scripts\python.exe scripts\init_threat_sources.py
+.\.venv\Scripts\python.exe scripts\init_app_settings.py
 ```
 
-2. Dans `.env`, définissez `DATABASE_URL` :
+## Lancement
 
-```
-DATABASE_URL=postgresql+psycopg2://<user>:<password>@localhost:5432/threatwatch
-```
-
-3. Installez les dépendances et seed l'utilisateur :
-
-```bash
-pip install -r requirements.txt
-python scripts/seed_admin.py
+```powershell
+.\.venv\Scripts\uvicorn.exe app.main:app --host 127.0.0.1 --port 8001
 ```
 
-4. Lancez l'application :
+Puis ouvrir :
 
-```bash
-uvicorn app.main:app --reload
-```
-```
-
-## Créer un utilisateur de test
-
-Il n'y a pas (encore) d'écran d'inscription : les comptes sont créés par un
-administrateur. Le script suivant crée un admin par défaut :
-
-```bash
-python scripts/seed_admin.py
-# e-mail    : admin@veille-securitaire.local
-# mot de passe : Admin1234!
+```text
+http://127.0.0.1:8001/login
 ```
 
-Vous pouvez créer d'autres comptes :
-```bash
-python scripts/seed_admin.py --nom "Sara Analyste" --email sara@exemple.com --password Test1234! --role ANALYSTE
+Diagnostic des ports :
+
+```powershell
+.\.venv\Scripts\python.exe scripts\check_server_environment.py
 ```
 
-## Lancer l'application
+## Validation finale
 
-```bash
-uvicorn app.main:app --reload
+```powershell
+.\.venv\Scripts\python.exe scripts\cleanup_demo_alert.py
+.\.venv\Scripts\python.exe scripts\check_final_e2e.py
+.\.venv\Scripts\python.exe scripts\check_project_complete.py
 ```
 
-Puis ouvrir http://127.0.0.1:8000/login
+Le verdict attendu du check global est :
 
-## Tester le scénario complet
+```text
+THREATWATCH FINAL CHECK: OK
+```
 
-1. Aller sur `/` → redirigé vers `/login` (non authentifié).
-2. Se connecter avec de mauvais identifiants → message d'erreur générique.
-3. Se connecter avec `admin@veille-securitaire.local` / `Admin1234!` → redirection vers `/dashboard`.
-4. Le Dashboard affiche 4 cartes à 0 et « Aucune alerte disponible pour le moment » (aucune donnée inventée).
-5. Cliquer sur l'avatar en haut à droite → menu → **Déconnexion**.
-6. Tenter de retourner sur `/dashboard` → redirigé vers `/login`.
-7. (Optionnel) Désactiver un utilisateur en base (`actif = False`) → la connexion est refusée avec un message dédié.
+## Securite
 
-## Prochaines phases (déjà préparées dans l'architecture)
+- Les secrets restent dans `.env`.
+- `.env.example` ne contient que des placeholders.
+- `.gitignore` exclut `.env`, `.venv`, `venv`, `__pycache__` et `*.pyc`.
+- Les cookies de session sont signes, `SameSite=Lax`, `HttpOnly` via
+  `SessionMiddleware`, et `Secure` pilotable par `SESSION_HTTPS_ONLY`.
+- Les formulaires POST utilisent un token CSRF stocke en session.
 
-Le dossier `models/`, la logique DGSSI déjà livrée (connecteur, normalisation,
-matching d'actifs, score de risque) et cette couche web sont conçus pour
-être assemblés sans réécriture : Alertes, Bulletins, CVE, Actifs et
-Traitements viendront comme nouveaux `routers/` + `templates/`, en
-réutilisant `require_authenticated_user` pour la protection des pages.
+## Structure
+
+```text
+app/
+  core/        configuration, securite, CSRF, dependances
+  db/          SQLAlchemy engine/session/Base
+  models/      modeles persistants
+  routers/     routes FastAPI
+  services/    logique metier
+  templates/   vues Jinja2
+  static/      CSS/JS
+scripts/       checks, initialisation, diagnostics
+docs/          notes de validation
+```

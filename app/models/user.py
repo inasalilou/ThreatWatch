@@ -10,11 +10,16 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+
+if TYPE_CHECKING:
+    from app.models.alert_treatment import AlertTreatment
+    from app.models.notification import Notification
 
 
 class RoleUtilisateur(str, enum.Enum):
@@ -43,6 +48,15 @@ class Utilisateur(Base):
     )
     derniere_connexion: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True
+    )
+
+    alert_treatments: Mapped[list["AlertTreatment"]] = relationship(
+        back_populates="analyst",
+        order_by="AlertTreatment.created_at.desc()",
+    )
+    notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="recipient_user",
+        order_by="Notification.created_at.desc()",
     )
 
     def __repr__(self) -> str:  # utile en debug

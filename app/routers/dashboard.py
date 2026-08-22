@@ -1,7 +1,4 @@
-"""
-Routes de la page Tableau de bord (seule page fonctionnelle de cette
-première version, hors authentification).
-"""
+"""Routes de la page Tableau de bord SOC."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
@@ -12,6 +9,18 @@ from app.core.deps import require_authenticated_user
 from app.core.templating import templates
 from app.db.database import get_db
 from app.models.user import Utilisateur
+from app.services.dashboard_service import (
+    action_type_label,
+    alert_priority_tone,
+    alert_status_label,
+    alert_status_tone,
+    criticality_tone,
+    format_datetime,
+    get_dashboard_data,
+    notification_severity_tone,
+    severity_tone,
+    sync_status_tone,
+)
 
 router = APIRouter(tags=["dashboard"])
 
@@ -22,24 +31,21 @@ def dashboard_page(
     current_user: Utilisateur = Depends(require_authenticated_user),
     db: Session = Depends(get_db),
 ):
-    # Pour cette première version : pas de données réelles issues de la
-    # collecte DGSSI. On affiche des compteurs à zéro et un tableau vide,
-    # sans jamais inventer de fausses alertes.
-    stats = {
-        "alertes_actives": 0,
-        "alertes_critiques": 0,
-        "vulnerabilites_detectees": 0,
-        "actifs_surveilles": 0,
-    }
-    dernieres_alertes: list = []
-
     return templates.TemplateResponse(
         request,
         "dashboard/index.html",
         {
             "current_user": current_user,
             "active_page": "dashboard",
-            "stats": stats,
-            "dernieres_alertes": dernieres_alertes,
+            "dashboard": get_dashboard_data(db, current_user),
+            "alert_priority_tone": alert_priority_tone,
+            "alert_status_label": alert_status_label,
+            "alert_status_tone": alert_status_tone,
+            "action_type_label": action_type_label,
+            "notification_severity_tone": notification_severity_tone,
+            "criticality_tone": criticality_tone,
+            "sync_status_tone": sync_status_tone,
+            "severity_tone": severity_tone,
+            "format_datetime": format_datetime,
         },
     )

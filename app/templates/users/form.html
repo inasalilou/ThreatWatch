@@ -1,0 +1,80 @@
+{% extends "layout/app.html" %}
+{% set is_edit = mode == "edit" %}
+{% block title %}{{ "Modifier un utilisateur" if is_edit else "Ajouter un utilisateur" }} - {{ app_name }}{% endblock %}
+{% block page_title %}{{ "Modifier un utilisateur" if is_edit else "Ajouter un utilisateur" }}{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="{{ '/users/' ~ user.id if is_edit and user else '/users' }}" class="back-link">Retour</a>
+    <h1>{{ "Modifier un utilisateur" if is_edit else "Ajouter un utilisateur" }}</h1>
+    <p>{{ "Mettre a jour les informations non sensibles du compte." if is_edit else "Creer un compte administrateur ou analyste." }}</p>
+  </div>
+</div>
+
+<form class="asset-form" method="post" action="{{ '/users/' ~ user.id ~ '/edit' if is_edit and user else '/users' }}">
+  {{ csrf_input(request) | safe }}
+  {% if error %}
+  <div class="alert-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Identification</h2>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="nom">Nom *</label>
+        <input id="nom" name="nom" type="text" value="{{ form_data.nom }}" required />
+      </div>
+      <div class="field">
+        <label for="email">E-mail *</label>
+        <input id="email" name="email" type="email" value="{{ form_data.email }}" required />
+      </div>
+      <div class="field">
+        <label for="role">Role *</label>
+        <select id="role" name="role" required>
+          {% for value, label in role_options %}
+          <option value="{{ value }}" {% if form_data.role == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if not is_edit %}
+      <div class="field">
+        <label for="actif">Etat initial</label>
+        <label class="checkbox-field">
+          <input id="actif" name="actif" type="checkbox" {% if form_data.actif %}checked{% endif %} />
+          <span>Compte actif</span>
+        </label>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if not is_edit %}
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Mot de passe initial</h2>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="password">Mot de passe *</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" required />
+      </div>
+      <div class="field">
+        <label for="password_confirmation">Confirmation *</label>
+        <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required />
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" href="{{ '/users/' ~ user.id if is_edit and user else '/users' }}">Annuler</a>
+    <button class="btn btn-primary" type="submit">{{ "Enregistrer" if is_edit else "Creer l'utilisateur" }}</button>
+  </div>
+</form>
+{% endblock %}

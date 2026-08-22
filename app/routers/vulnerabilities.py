@@ -14,6 +14,20 @@ from app.core.templating import templates
 from app.db.database import get_db
 from app.models.user import Utilisateur
 from app.services.bulletin_service import severity_tone
+from app.services.asset_service import (
+    asset_type_label,
+    criticality_label,
+    criticality_tone,
+    environment_label,
+    environment_tone,
+)
+from app.services.correlation_query_service import (
+    correlation_activity_label,
+    correlation_activity_tone,
+    correlation_status_label,
+    correlation_status_tone,
+    get_correlations_for_vulnerability,
+)
 from app.services.vulnerability_service import (
     cvss_tone,
     enrichment_status_label,
@@ -118,9 +132,24 @@ def vulnerability_detail_page(
             "current_user": current_user,
             "active_page": "vulnerabilities",
             "vulnerability": vulnerability,
+            "correlations": get_correlations_for_vulnerability(
+                db,
+                vulnerability.enrichment.id,
+            )
+            if vulnerability.enrichment
+            else [],
             "severity_tone": severity_tone,
             "cvss_tone": cvss_tone,
             "enrichment_status_label": enrichment_status_label,
             "enrichment_status_tone": enrichment_status_tone,
+            "asset_type_label": asset_type_label,
+            "criticality_label": criticality_label,
+            "criticality_tone": criticality_tone,
+            "environment_label": environment_label,
+            "environment_tone": environment_tone,
+            "correlation_activity_label": correlation_activity_label,
+            "correlation_activity_tone": correlation_activity_tone,
+            "correlation_status_label": correlation_status_label,
+            "correlation_status_tone": correlation_status_tone,
         },
     )

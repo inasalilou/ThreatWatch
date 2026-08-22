@@ -1,11 +1,11 @@
 {% extends "layout/app.html" %}
-{% block title %}Tableau de bord — {{ app_name }}{% endblock %}
+{% block title %}Tableau de bord - {{ app_name }}{% endblock %}
 {% block page_title %}Tableau de bord{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>Vue d'ensemble</h1>
-  <p>Synthèse de la veille sécuritaire et des menaces en cours de traitement.</p>
+  <h1>Vue d'ensemble SOC</h1>
+  <p>Synthese operationnelle des alertes, vulnerabilites, actifs et traitements.</p>
 </div>
 
 <div class="stat-grid">
@@ -15,7 +15,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
       </div>
     </div>
-    <div class="stat-card__value">{{ stats.alertes_actives }}</div>
+    <div class="stat-card__value">{{ dashboard.counters.active_alerts }}</div>
     <div class="stat-card__label">Alertes actives</div>
   </div>
 
@@ -25,7 +25,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4v6c0 5-3.9 8.7-9 10-5.1-1.3-9-5-9-10V6l9-4z"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16" r="0.6" fill="currentColor"/></svg>
       </div>
     </div>
-    <div class="stat-card__value">{{ stats.alertes_critiques }}</div>
+    <div class="stat-card__value">{{ dashboard.counters.critical_alerts }}</div>
     <div class="stat-card__label">Alertes critiques</div>
   </div>
 
@@ -35,8 +35,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       </div>
     </div>
-    <div class="stat-card__value">{{ stats.vulnerabilites_detectees }}</div>
-    <div class="stat-card__label">Vulnérabilités détectées</div>
+    <div class="stat-card__value">{{ dashboard.counters.vulnerabilities_detected }}</div>
+    <div class="stat-card__label">Vulnerabilites detectees</div>
   </div>
 
   <div class="stat-card">
@@ -45,52 +45,226 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
       </div>
     </div>
-    <div class="stat-card__value">{{ stats.actifs_surveilles }}</div>
-    <div class="stat-card__label">Actifs surveillés</div>
+    <div class="stat-card__value">{{ dashboard.counters.active_assets }}</div>
+    <div class="stat-card__label">Actifs surveilles</div>
   </div>
 </div>
 
-<div class="panel">
-  <div class="panel__header">
-    <h2>Dernières alertes de sécurité</h2>
-    <span class="eyebrow">Temps réel</span>
+<div class="dashboard-mini-grid">
+  <div class="panel dashboard-mini-panel">
+    <div class="panel__header">
+      <h2>File alertes</h2>
+    </div>
+    <div class="dashboard-pills">
+      <span class="badge tone-critical">NEW {{ dashboard.counters.new_alerts }}</span>
+      <span class="badge tone-warning">IN_PROGRESS {{ dashboard.counters.in_progress_alerts }}</span>
+      <span class="badge tone-success">RESOLVED {{ dashboard.counters.resolved_alerts }}</span>
+    </div>
   </div>
 
-  {% if dernieres_alertes %}
-  <table>
-    <thead>
-      <tr>
-        <th>Référence</th>
-        <th>Vulnérabilité / CVE</th>
-        <th>Priorité</th>
-        <th>Score</th>
-        <th>Statut</th>
-        <th>Date</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for alerte in dernieres_alertes %}
-      <tr>
-        <td class="mono">{{ alerte.reference }}</td>
-        <td class="mono">{{ alerte.cve }}</td>
-        <td><span class="badge tone-critical">{{ alerte.priorite }}</span></td>
-        <td>{{ alerte.score }}</td>
-        <td><span class="badge tone-neutral">{{ alerte.statut }}</span></td>
-        <td class="mono">{{ alerte.date }}</td>
-        <td><a href="#" class="btn btn-ghost" style="padding: 6px 10px;">Ouvrir</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-state__icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  <div class="panel dashboard-mini-panel">
+    <div class="panel__header">
+      <h2>Pipeline NVD</h2>
     </div>
-    <p class="title">Aucune alerte disponible pour le moment</p>
-    <p class="sub">Les alertes apparaîtront ici dès que la collecte automatique des bulletins DGSSI sera activée.</p>
+    <div class="dashboard-pills">
+      <span class="badge tone-warning">PENDING {{ dashboard.pipeline_status.pending }}</span>
+      <span class="badge tone-success">SUCCESS {{ dashboard.pipeline_status.success }}</span>
+      <span class="badge tone-critical">FAILED {{ dashboard.pipeline_status.failed }}</span>
+      <span class="badge tone-neutral">NOT_FOUND {{ dashboard.pipeline_status.not_found }}</span>
+    </div>
+  </div>
+
+  <div class="panel dashboard-mini-panel">
+    <div class="panel__header">
+      <h2>Signal SOC</h2>
+    </div>
+    <div class="dashboard-pills">
+      <span class="badge tone-info">MATCH actifs {{ dashboard.counters.active_match_correlations }}</span>
+      <span class="badge tone-warning">Notifications non lues {{ dashboard.counters.unread_notifications }}</span>
+      <span class="badge tone-success">NVD SUCCESS {{ dashboard.counters.nvd_success_vulnerabilities }}</span>
+    </div>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="panel__header">
+    <h2>Dernieres alertes SOC</h2>
+    <a class="btn btn-ghost btn-compact" href="/alerts">Voir tout</a>
+  </div>
+
+  {% if dashboard.recent_alerts %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>CVE</th>
+          <th>Actif</th>
+          <th>Priorite SOC</th>
+          <th>Score</th>
+          <th>Statut</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in dashboard.recent_alerts %}
+        <tr>
+          <td><a class="mono cve-link" href="/alerts/{{ item.alert_id }}">{{ item.cve_id }}</a></td>
+          <td><a class="table-title cve-link" href="/assets/{{ item.asset_id }}">{{ item.asset_name }}</a></td>
+          <td><span class="badge {{ alert_priority_tone(item.priority_level) }}">{{ item.priority_level.value }}</span></td>
+          <td class="mono">{{ item.priority_score }}</td>
+          <td><span class="badge {{ alert_status_tone(item.status) }}">{{ alert_status_label(item.status) }}</span></td>
+          <td class="mono">{{ format_datetime(item.last_seen_at) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">Aucune alerte SOC active.</p>
+    <p class="sub">Aucune correlation MATCH active n'a genere d'alerte pour le moment.</p>
   </div>
   {% endif %}
+</section>
+
+<div class="dashboard-grid">
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Vulnerabilites NVD</h2>
+    </div>
+    <div class="dashboard-list">
+      {% for stat in dashboard.vulnerability_severity_stats %}
+      <div class="dashboard-list__item">
+        <span>{{ stat.severity }}</span>
+        <strong><span class="badge {{ severity_tone(stat.severity) }}">{{ stat.count }}</span></strong>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Derniere synchronisation DGSSI</h2>
+    </div>
+    <div class="detail-list detail-list--three">
+      <div>
+        <span>Statut</span>
+        <strong><span class="badge {{ sync_status_tone(dashboard.sync_summary.status) }}">{{ dashboard.sync_summary.status }}</span></strong>
+      </div>
+      <div>
+        <span>Date</span>
+        <strong>{{ format_datetime(dashboard.sync_summary.started_at) }}</strong>
+      </div>
+      <div>
+        <span>Detectes</span>
+        <strong>{{ dashboard.sync_summary.items_found }}</strong>
+      </div>
+      <div>
+        <span>Nouveaux</span>
+        <strong>{{ dashboard.sync_summary.items_created }}</strong>
+      </div>
+      <div>
+        <span>Mis a jour</span>
+        <strong>{{ dashboard.sync_summary.items_updated }}</strong>
+      </div>
+      {% if dashboard.sync_summary.error_message %}
+      <div>
+        <span>Erreur</span>
+        <strong>{{ dashboard.sync_summary.error_message }}</strong>
+      </div>
+      {% endif %}
+    </div>
+  </section>
 </div>
+
+<div class="dashboard-grid">
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Actifs exposes</h2>
+      <a class="btn btn-ghost btn-compact" href="/correlations">Correlations</a>
+    </div>
+    {% if dashboard.top_exposed_assets %}
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Actif</th>
+            <th>Criticite</th>
+            <th>MATCH</th>
+            <th>POSSIBLE</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in dashboard.top_exposed_assets %}
+          <tr>
+            <td><a class="table-title cve-link" href="/assets/{{ item.asset_id }}">{{ item.asset_name }}</a></td>
+            <td><span class="badge {{ criticality_tone(item.criticality) }}">{{ item.criticality.value }}</span></td>
+            <td class="mono">{{ item.match_count }}</td>
+            <td class="mono">{{ item.possible_match_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state empty-state--compact">
+      <p class="title">Aucun actif expose.</p>
+      <p class="sub">Aucune correlation active MATCH ou POSSIBLE_MATCH.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Dernieres actions analystes</h2>
+      <a class="btn btn-ghost btn-compact" href="/treatments">Traitements</a>
+    </div>
+    {% if dashboard.recent_treatments %}
+    <div class="dashboard-list">
+      {% for item in dashboard.recent_treatments %}
+      <a class="dashboard-list__item dashboard-list__item--link" href="/alerts/{{ item.alert_id }}">
+        <span>
+          <strong>{{ item.analyst_name }}</strong>
+          <small>{{ action_type_label(item.action_type) }} - {{ item.cve_id }}</small>
+        </span>
+        <span class="mono">{{ format_datetime(item.created_at) }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state empty-state--compact">
+      <p class="title">Aucun traitement recent.</p>
+      <p class="sub">Les actions analystes apparaitront ici apres prise en charge.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel__header">
+    <h2>Notifications recentes</h2>
+    <a class="btn btn-ghost btn-compact" href="/notifications">Notifications</a>
+  </div>
+  {% if dashboard.recent_notifications %}
+  <div class="dashboard-list">
+    {% for item in dashboard.recent_notifications %}
+    <a class="dashboard-list__item dashboard-list__item--link" href="/alerts/{{ item.alert_id }}">
+      <span>
+        <strong>{{ item.title }}</strong>
+        <small>{{ "Non lue" if not item.is_read else "Lue" }}</small>
+      </span>
+      <span>
+        <span class="badge {{ notification_severity_tone(item.severity) }}">{{ item.severity }}</span>
+        <span class="mono">{{ format_datetime(item.created_at) }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">Aucune notification visible.</p>
+    <p class="sub">Les notifications SOC generees par les alertes apparaitront ici.</p>
+  </div>
+  {% endif %}
+</section>
 {% endblock %}

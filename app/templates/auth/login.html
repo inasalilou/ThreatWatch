@@ -30,6 +30,7 @@
       {% endif %}
 
       <form method="post" action="/login" data-login-form novalidate>
+        {{ csrf_input(request) | safe }}
         <input type="hidden" name="next" value="{{ next }}" />
 
         <div class="field">

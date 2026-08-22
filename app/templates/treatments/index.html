@@ -1,0 +1,202 @@
+{% extends "layout/app.html" %}
+{% block title %}Traitements - {{ app_name }}{% endblock %}
+{% block page_title %}Traitements analyste{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Traitements analyste</h1>
+    <p>Historique global des actions realisees sur les alertes SOC.</p>
+  </div>
+  <span class="badge tone-neutral">Lecture seule</span>
+</div>
+
+<div class="stat-grid stat-grid--five">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.total_actions }}</div>
+    <div class="stat-card__label">Traitements totaux</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.started_actions }}</div>
+    <div class="stat-card__label">Prises en charge</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-neutral">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 01-4 4H7l-4 3V7a4 4 0 014-4h10a4 4 0 014 4z"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.commented_actions }}</div>
+    <div class="stat-card__label">Commentaires</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.resolved_actions }}</div>
+    <div class="stat-card__label">Resolutions</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-neutral">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M6 7v12h12V7"/><path d="M9 11h6"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.closed_actions }}</div>
+    <div class="stat-card__label">Clotures</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>Actions analystes</h2>
+      <span class="panel__sub">{{ result.total }} action{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+
+    <form class="filters" method="get" action="/treatments">
+      <div class="field field--inline">
+        <label for="q">Recherche</label>
+        <input id="q" name="q" type="text" value="{{ result.search }}" placeholder="CVE, actif, alerte, analyste, commentaire..." />
+      </div>
+
+      <div class="field field--inline">
+        <label for="analyst_id">Analyste</label>
+        <select id="analyst_id" name="analyst_id">
+          <option value="">Tous</option>
+          {% for analyst_id, analyst_name in analyst_options %}
+          <option value="{{ analyst_id }}" {% if result.analyst_id == analyst_id %}selected{% endif %}>{{ analyst_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="">Tous</option>
+          {% for value, label in role_options %}
+          <option value="{{ value }}" {% if result.role == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="action_type">Action</label>
+        <select id="action_type" name="action_type">
+          <option value="">Toutes</option>
+          {% for value, label in action_options %}
+          <option value="{{ value }}" {% if result.action_type == value %}selected{% endif %}>{{ action_type_label(value) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="new_status">Nouveau statut</label>
+        <select id="new_status" name="new_status">
+          <option value="">Tous</option>
+          {% for value, label in status_options %}
+          <option value="{{ value }}" {% if result.new_status == value %}selected{% endif %}>{{ alert_status_label(value) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="date_from">Depuis</label>
+        <input id="date_from" name="date_from" type="date" value="{{ result.date_from.isoformat() if result.date_from else '' }}" />
+      </div>
+
+      <div class="field field--inline">
+        <label for="date_to">Jusqu'au</label>
+        <input id="date_to" name="date_to" type="date" value="{{ result.date_to.isoformat() if result.date_to else '' }}" />
+      </div>
+
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+      {% if result.search or result.analyst_id or result.role or result.action_type or result.new_status or result.date_from or result.date_to %}
+      <a class="btn btn-ghost" href="/treatments">Reinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Analyste</th>
+          <th>Role</th>
+          <th>Alerte</th>
+          <th>CVE</th>
+          <th>Actif</th>
+          <th>Action</th>
+          <th>Ancien statut</th>
+          <th>Nouveau statut</th>
+          <th>Commentaire</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in result.items %}
+        <tr>
+          <td class="mono">{{ item.treatment.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td>{{ item.analyst.nom }}</td>
+          <td><span class="badge tone-neutral">{{ item.analyst.role.value }}</span></td>
+          <td><a class="table-title cve-link" href="/alerts/{{ item.alert.id }}">{{ item.alert.title }}</a></td>
+          <td><a class="mono cve-link" href="/vulnerabilities/{{ item.vulnerability.cve_id }}">{{ item.vulnerability.cve_id }}</a></td>
+          <td>
+            <a class="table-title cve-link" href="/assets/{{ item.asset.id }}">{{ item.asset.name }}</a>
+            {% if item.asset.hostname %}
+            <span class="table-title--inline mono">{{ item.asset.hostname }}</span>
+            {% endif %}
+          </td>
+          <td><span class="badge tone-info">{{ action_type_label(item.treatment.action_type) }}</span></td>
+          <td><span class="badge {{ alert_status_tone(item.treatment.previous_status) }}">{{ alert_status_label(item.treatment.previous_status) }}</span></td>
+          <td><span class="badge {{ alert_status_tone(item.treatment.new_status) }}">{{ alert_status_label(item.treatment.new_status) }}</span></td>
+          <td class="treatment-comment">{{ item.treatment.comment or "-" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/treatments?page={{ result.page - 1 }}&{{ pagination_query }}">Precedent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Precedent</span>
+    {% endif %}
+
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/treatments?page={{ result.page + 1 }}&{{ pagination_query }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    </div>
+    <p class="title">Aucun traitement analyste n'est encore enregistre.</p>
+    <p class="sub">Les actions realisees depuis le detail d'une alerte apparaitront ici.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

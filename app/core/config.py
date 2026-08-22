@@ -72,5 +72,17 @@ class Settings:
     )
     NVD_BATCH_SIZE: int = int(os.getenv("NVD_BATCH_SIZE", "5"))
 
+    # --- Notifications email SMTP ---
+    SMTP_ENABLED: bool = os.getenv("SMTP_ENABLED", "false").lower() == "true"
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "")
+    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "ThreatWatch")
+    SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    SMTP_TIMEOUT: float = float(os.getenv("SMTP_TIMEOUT", "15"))
+    SOC_NOTIFICATION_EMAIL: str = os.getenv("SOC_NOTIFICATION_EMAIL", "")
+
 
 settings = Settings()

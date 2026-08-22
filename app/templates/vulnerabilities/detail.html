@@ -181,6 +181,69 @@
   {% endif %}
 </section>
 
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <div>
+      <h2>Actifs potentiellement impactes</h2>
+      <span class="panel__sub">Correlations persistantes actives, sans recalcul automatique</span>
+    </div>
+    <span class="eyebrow">{{ correlations|length }} actif{{ "s" if correlations|length > 1 else "" }}</span>
+  </div>
+
+  {% if correlations %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Actif</th>
+          <th>Type</th>
+          <th>Produit</th>
+          <th>Criticite</th>
+          <th>Environnement</th>
+          <th>Statut</th>
+          <th>Raison</th>
+          <th>Premiere detection</th>
+          <th>Derniere evaluation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for correlation in correlations %}
+        <tr>
+          <td>
+            <a class="table-title cve-link" href="/assets/{{ correlation.asset_id }}">{{ correlation.asset_name }}</a>
+          </td>
+          <td>{{ asset_type_label(correlation.asset_type) }}</td>
+          <td>
+            <span>{{ correlation.product or "-" }}</span>
+            <span class="table-title--inline mono">{{ correlation.product_version or "-" }}</span>
+          </td>
+          <td>
+            <span class="badge {{ criticality_tone(correlation.criticality) }}">{{ criticality_label(correlation.criticality) }}</span>
+          </td>
+          <td>
+            <span class="badge {{ environment_tone(correlation.environment) }}">{{ environment_label(correlation.environment) }}</span>
+          </td>
+          <td>
+            <span class="badge {{ correlation_status_tone(correlation.status) }}">
+              {{ correlation_status_label(correlation.status) }}
+            </span>
+          </td>
+          <td class="correlation-reason">{{ correlation.reason or "-" }}</td>
+          <td class="mono">{{ correlation.first_detected_at.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td class="mono">{{ correlation.last_evaluated_at.strftime("%d/%m/%Y %H:%M") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">Aucun actif impacte identifie pour cette vulnerabilite.</p>
+    <p class="sub">Les resultats NO_MATCH et UNKNOWN ne sont pas affiches dans cette vue.</p>
+  </div>
+  {% endif %}
+</section>
+
 {% for bulletin in vulnerability.bulletins %}
 <section class="panel detail-panel">
   <div class="panel__header">

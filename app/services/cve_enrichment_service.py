@@ -12,11 +12,12 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.vulnerability import EnrichmentStatus, Vulnerability
+from app.models.vulnerability_affected_product import VulnerabilityAffectedProduct
 from app.services.nvd_client import NVDClient, NVDClientError
 
 CVE_PATTERN = re.compile(r"^CVE-\d{4}-\d{4,10}$", re.IGNORECASE)
@@ -44,6 +45,21 @@ class NormalizedNvdCve:
     published_at: datetime | None
     modified_at: datetime | None
     external_references: list[dict[str, str]]
+    affected_products: list["NormalizedAffectedProduct"]
+
+
+@dataclass(frozen=True)
+class NormalizedAffectedProduct:
+    cpe: str
+    cpe_part: str | None = None
+    vendor: str | None = None
+    product: str | None = None
+    version: str | None = None
+    version_start_including: str = ""
+    version_start_excluding: str = ""
+    version_end_including: str = ""
+    version_end_excluding: str = ""
+    vulnerable: bool = True
 
 
 @dataclass(frozen=True)
@@ -61,6 +77,8 @@ class CveEnrichmentResult:
     published_at: datetime | None = None
     modified_at: datetime | None = None
     reference_count: int = 0
+    affected_product_count: int = 0
+    affected_product_samples: list[str] = field(default_factory=list)
     error_message: str | None = None
 
 
@@ -107,6 +125,7 @@ def enrich_single_cve(
 
         normalized = normalize_nvd_cve(nvd_record, normalized_cve_id)
         apply_successful_enrichment(vulnerability, normalized)
+        replace_affected_products(db, vulnerability, normalized.affected_products)
         db.commit()
 
         return CveEnrichmentResult(
@@ -122,6 +141,10 @@ def enrich_single_cve(
             published_at=normalized.published_at,
             modified_at=normalized.modified_at,
             reference_count=len(normalized.external_references),
+            affected_product_count=len(normalized.affected_products),
+            affected_product_samples=[
+                product.cpe for product in normalized.affected_products[:5]
+            ],
         )
     except NVDClientError as exc:
         db.rollback()
@@ -161,6 +184,7 @@ def normalize_nvd_cve(record: dict[str, Any], cve_id: str) -> NormalizedNvdCve:
         published_at=parse_nvd_datetime(record.get("published")),
         modified_at=parse_nvd_datetime(record.get("lastModified")),
         external_references=extract_references(record.get("references") or []),
+        affected_products=extract_affected_products(record.get("configurations") or []),
     )
 
 
@@ -245,6 +269,150 @@ def extract_references(references: list[dict[str, Any]]) -> list[dict[str, str]]
     return extracted
 
 
+def extract_affected_products(
+    configurations: list[dict[str, Any]] | dict[str, Any],
+) -> list[NormalizedAffectedProduct]:
+    products: list[NormalizedAffectedProduct] = []
+    seen: set[tuple[str, str, str, str, str]] = set()
+
+    for cpe_match in iter_cpe_matches(configurations):
+        if cpe_match.get("vulnerable") is not True:
+            continue
+
+        cpe = normalize_optional_string(
+            cpe_match.get("criteria")
+            or cpe_match.get("cpe23Uri")
+            or cpe_match.get("cpe22Uri")
+        )
+        if not cpe:
+            continue
+
+        version_start_including = normalize_version_bound(
+            cpe_match.get("versionStartIncluding")
+        )
+        version_start_excluding = normalize_version_bound(
+            cpe_match.get("versionStartExcluding")
+        )
+        version_end_including = normalize_version_bound(
+            cpe_match.get("versionEndIncluding")
+        )
+        version_end_excluding = normalize_version_bound(
+            cpe_match.get("versionEndExcluding")
+        )
+
+        key = (
+            cpe,
+            version_start_including,
+            version_start_excluding,
+            version_end_including,
+            version_end_excluding,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+
+        cpe_components = parse_cpe_23(cpe)
+        products.append(
+            NormalizedAffectedProduct(
+                cpe=cpe,
+                cpe_part=cpe_components.get("part"),
+                vendor=cpe_components.get("vendor"),
+                product=cpe_components.get("product"),
+                version=cpe_components.get("version"),
+                version_start_including=version_start_including,
+                version_start_excluding=version_start_excluding,
+                version_end_including=version_end_including,
+                version_end_excluding=version_end_excluding,
+                vulnerable=True,
+            )
+        )
+
+    return products
+
+
+def iter_cpe_matches(
+    configurations: list[dict[str, Any]] | dict[str, Any],
+):
+    if isinstance(configurations, dict):
+        configuration_items = [configurations]
+    elif isinstance(configurations, list):
+        configuration_items = configurations
+    else:
+        return
+
+    for configuration in configuration_items:
+        if not isinstance(configuration, dict):
+            continue
+        for node in configuration.get("nodes") or []:
+            yield from iter_cpe_matches_from_node(node)
+
+
+def iter_cpe_matches_from_node(node: dict[str, Any]):
+    if not isinstance(node, dict):
+        return
+
+    for cpe_match in node.get("cpeMatch") or []:
+        if isinstance(cpe_match, dict):
+            yield cpe_match
+
+    for child_node in node.get("nodes") or []:
+        yield from iter_cpe_matches_from_node(child_node)
+
+
+def parse_cpe_23(cpe: str) -> dict[str, str]:
+    parts = split_cpe_23(cpe)
+    if len(parts) < 6 or parts[0] != "cpe" or parts[1] != "2.3":
+        return {}
+
+    return {
+        "part": unescape_cpe_component(parts[2]),
+        "vendor": unescape_cpe_component(parts[3]),
+        "product": unescape_cpe_component(parts[4]),
+        "version": unescape_cpe_component(parts[5]),
+    }
+
+
+def split_cpe_23(cpe: str) -> list[str]:
+    parts: list[str] = []
+    current: list[str] = []
+    escaped = False
+
+    for character in cpe:
+        if escaped:
+            current.append("\\" + character)
+            escaped = False
+            continue
+        if character == "\\":
+            escaped = True
+            continue
+        if character == ":":
+            parts.append("".join(current))
+            current = []
+            continue
+        current.append(character)
+
+    if escaped:
+        current.append("\\")
+    parts.append("".join(current))
+    return parts
+
+
+def unescape_cpe_component(value: str) -> str:
+    return value.replace("\\", "")
+
+
+def normalize_optional_string(value: Any) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
+
+
+def normalize_version_bound(value: Any) -> str:
+    normalized = normalize_optional_string(value)
+    return normalized or ""
+
+
 def parse_nvd_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -275,6 +443,36 @@ def apply_successful_enrichment(
     vulnerability.enrichment_status = EnrichmentStatus.SUCCESS
     vulnerability.enrichment_error = None
     vulnerability.last_enrichment_at = datetime.utcnow()
+
+
+def replace_affected_products(
+    db: Session,
+    vulnerability: Vulnerability,
+    affected_products: list[NormalizedAffectedProduct],
+) -> None:
+    db.execute(
+        delete(VulnerabilityAffectedProduct).where(
+            VulnerabilityAffectedProduct.vulnerability_id == vulnerability.id
+        )
+    )
+    db.add_all(
+        [
+            VulnerabilityAffectedProduct(
+                vulnerability_id=vulnerability.id,
+                cpe=affected_product.cpe,
+                cpe_part=affected_product.cpe_part,
+                vendor=affected_product.vendor,
+                product=affected_product.product,
+                version=affected_product.version,
+                version_start_including=affected_product.version_start_including,
+                version_start_excluding=affected_product.version_start_excluding,
+                version_end_including=affected_product.version_end_including,
+                version_end_excluding=affected_product.version_end_excluding,
+                vulnerable=affected_product.vulnerable,
+            )
+            for affected_product in affected_products
+        ]
+    )
 
 
 def update_not_found(vulnerability: Vulnerability) -> None:

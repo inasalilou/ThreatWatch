@@ -1,0 +1,133 @@
+{% extends "layout/app.html" %}
+{% set is_edit = mode == "edit" %}
+{% block title %}{{ "Modifier un actif" if is_edit else "Ajouter un actif" }} - {{ app_name }}{% endblock %}
+{% block page_title %}{{ "Modifier un actif" if is_edit else "Ajouter un actif" }}{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="{{ '/assets/' ~ asset.id if is_edit and asset else '/assets' }}" class="back-link">Retour</a>
+    <h1>{{ "Modifier un actif" if is_edit else "Ajouter un actif" }}</h1>
+    <p>{{ "Mettre a jour les informations d'inventaire." if is_edit else "Creer un nouvel element surveille dans l'inventaire." }}</p>
+  </div>
+</div>
+
+<form class="asset-form" method="post" action="{{ '/assets/' ~ asset.id ~ '/edit' if is_edit and asset else '/assets' }}">
+  {{ csrf_input(request) | safe }}
+  {% if error %}
+  <div class="alert-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Identification</h2>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="name">Nom *</label>
+        <input id="name" name="name" type="text" value="{{ form_data.name }}" required />
+      </div>
+      <div class="field">
+        <label for="asset_type">Type *</label>
+        <select id="asset_type" name="asset_type" required>
+          {% for value, label in asset_types %}
+          <option value="{{ value }}" {% if form_data.asset_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="hostname">Hostname</label>
+        <input id="hostname" name="hostname" type="text" value="{{ form_data.hostname }}" />
+      </div>
+      <div class="field">
+        <label for="ip_address">Adresse IP</label>
+        <input id="ip_address" name="ip_address" type="text" value="{{ form_data.ip_address }}" placeholder="192.168.1.20" />
+      </div>
+    </div>
+  </section>
+
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Technologie</h2>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="vendor">Vendor</label>
+        <input id="vendor" name="vendor" type="text" value="{{ form_data.vendor }}" />
+      </div>
+      <div class="field">
+        <label for="product">Produit</label>
+        <input id="product" name="product" type="text" value="{{ form_data.product }}" />
+      </div>
+      <div class="field">
+        <label for="product_version">Version produit</label>
+        <input id="product_version" name="product_version" type="text" value="{{ form_data.product_version }}" />
+      </div>
+      <div class="field">
+        <label for="operating_system">Systeme d'exploitation</label>
+        <input id="operating_system" name="operating_system" type="text" value="{{ form_data.operating_system }}" />
+      </div>
+      <div class="field">
+        <label for="os_version">Version OS</label>
+        <input id="os_version" name="os_version" type="text" value="{{ form_data.os_version }}" />
+      </div>
+      <div class="field">
+        <label for="cpe">CPE</label>
+        <input id="cpe" name="cpe" type="text" value="{{ form_data.cpe }}" placeholder="cpe:2.3:a:vendor:product:version:*:*:*:*:*:*:*" />
+      </div>
+    </div>
+  </section>
+
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Contexte metier</h2>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="criticality">Criticite *</label>
+        <select id="criticality" name="criticality" required>
+          {% for value, label in criticalities %}
+          <option value="{{ value }}" {% if form_data.criticality == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="environment">Environnement *</label>
+        <select id="environment" name="environment" required>
+          {% for value, label in environments %}
+          <option value="{{ value }}" {% if form_data.environment == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="owner">Responsable</label>
+        <input id="owner" name="owner" type="text" value="{{ form_data.owner }}" />
+      </div>
+      <div class="field">
+        <label for="location">Localisation</label>
+        <input id="location" name="location" type="text" value="{{ form_data.location }}" />
+      </div>
+    </div>
+  </section>
+
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>Informations complementaires</h2>
+    </div>
+    <div class="form-grid form-grid--single">
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="5">{{ form_data.description }}</textarea>
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" href="{{ '/assets/' ~ asset.id if is_edit and asset else '/assets' }}">Annuler</a>
+    <button class="btn btn-primary" type="submit">{{ "Enregistrer" if is_edit else "Creer l'actif" }}</button>
+  </div>
+</form>
+{% endblock %}

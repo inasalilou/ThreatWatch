@@ -18,7 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT))
 
-from app.db.database import SessionLocal, get_safe_database_url, test_database_connection
+from app.db.database import SessionLocal, create_database_tables, get_safe_database_url
 from app.models.vulnerability import Vulnerability
 from app.services.cve_enrichment_service import (
     CveEnrichmentError,
@@ -41,7 +41,7 @@ def main() -> int:
     print(f"Enrichissement d'une seule CVE avec DATABASE_URL={get_safe_database_url()}")
 
     try:
-        test_database_connection()
+        create_database_tables()
         with SessionLocal() as db:
             vulnerability = db.execute(
                 select(Vulnerability).where(Vulnerability.cve_id == cve_id)
@@ -83,6 +83,9 @@ def print_result(result) -> None:
     print(f"Vector: {result.cvss_vector or '-'}")
     print(f"CWE: {', '.join(result.cwes) if result.cwes else '-'}")
     print(f"References: {result.reference_count}")
+    print(f"Affected products: {result.affected_product_count}")
+    for cpe in result.affected_product_samples:
+        print(f"- {cpe}")
     print(f"Published: {result.published_at or '-'}")
     print(f"Modified: {result.modified_at or '-'}")
     if result.error_message:

@@ -1,0 +1,209 @@
+{% extends "layout/app.html" %}
+{% block title %}{{ asset.name }} - {{ app_name }}{% endblock %}
+{% block page_title %}Detail actif{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="/assets" class="back-link">Retour aux actifs</a>
+    <h1>{{ asset.name }}</h1>
+    <p>{{ asset_type_label(asset.asset_type) }}</p>
+  </div>
+  <div class="header-actions">
+    <span class="badge {{ status_tone(asset.is_active) }}">{{ asset_status_label(asset.is_active) }}</span>
+    {% if current_user.role.value == "ADMIN" %}
+    <a class="btn btn-ghost" href="/assets/{{ asset.id }}/edit">Modifier</a>
+    {% if asset.is_active %}
+    <form method="post" action="/assets/{{ asset.id }}/disable" onsubmit="return confirm('Confirmer la desactivation de cet actif ?');">
+      {{ csrf_input(request) | safe }}
+      <button class="btn btn-ghost" type="submit">Desactiver</button>
+    </form>
+    {% else %}
+    <form method="post" action="/assets/{{ asset.id }}/enable">
+      {{ csrf_input(request) | safe }}
+      <button class="btn btn-ghost" type="submit">Reactiver</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-grid">
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Identite</h2>
+      <span class="badge {{ status_tone(asset.is_active) }}">{{ asset_status_label(asset.is_active) }}</span>
+    </div>
+    <div class="detail-list">
+      <div>
+        <span>Nom</span>
+        <strong>{{ asset.name }}</strong>
+      </div>
+      <div>
+        <span>Type</span>
+        <strong>{{ asset_type_label(asset.asset_type) }}</strong>
+      </div>
+      <div>
+        <span>Hostname</span>
+        <strong class="mono">{{ asset.hostname or "-" }}</strong>
+      </div>
+      <div>
+        <span>Adresse IP</span>
+        <strong class="mono">{{ asset.ip_address or "-" }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Contexte metier</h2>
+      <span class="badge {{ criticality_tone(asset.criticality) }}">{{ criticality_label(asset.criticality) }}</span>
+    </div>
+    <div class="detail-list">
+      <div>
+        <span>Criticite</span>
+        <strong>{{ criticality_label(asset.criticality) }}</strong>
+      </div>
+      <div>
+        <span>Environnement</span>
+        <strong>{{ environment_label(asset.environment) }}</strong>
+      </div>
+      <div>
+        <span>Responsable</span>
+        <strong>{{ asset.owner or "-" }}</strong>
+      </div>
+      <div>
+        <span>Localisation</span>
+        <strong>{{ asset.location or "-" }}</strong>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Technologie</h2>
+    <span class="eyebrow">Inventaire</span>
+  </div>
+  <div class="detail-list detail-list--three">
+    <div>
+      <span>Vendor</span>
+      <strong>{{ asset.vendor or "-" }}</strong>
+    </div>
+    <div>
+      <span>Produit</span>
+      <strong>{{ asset.product or "-" }}</strong>
+    </div>
+    <div>
+      <span>Version produit</span>
+      <strong class="mono">{{ asset.product_version or "-" }}</strong>
+    </div>
+    <div>
+      <span>Systeme d'exploitation</span>
+      <strong>{{ asset.operating_system or "-" }}</strong>
+    </div>
+    <div>
+      <span>Version OS</span>
+      <strong class="mono">{{ asset.os_version or "-" }}</strong>
+    </div>
+    <div>
+      <span>CPE</span>
+      <strong class="mono asset-cpe">{{ asset.cpe or "-" }}</strong>
+    </div>
+  </div>
+</section>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Description</h2>
+  </div>
+  <div class="detail-content">
+    {% if asset.description %}
+    <p>{{ asset.description }}</p>
+    {% else %}
+    <p class="muted">Aucune description renseignee.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <div>
+      <h2>Vulnerabilites correlees</h2>
+      <span class="panel__sub">Correspondances persistantes issues du moteur de correlation</span>
+    </div>
+    <span class="eyebrow">{{ correlations|length }} active{{ "s" if correlations|length > 1 else "" }}</span>
+  </div>
+
+  {% if correlations %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>CVE</th>
+          <th>Statut</th>
+          <th>CVSS</th>
+          <th>Raison</th>
+          <th>Premiere detection</th>
+          <th>Derniere evaluation</th>
+          <th>Etat</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for correlation in correlations %}
+        <tr>
+          <td>
+            <a class="mono cve-link" href="/vulnerabilities/{{ correlation.cve_id }}">{{ correlation.cve_id }}</a>
+          </td>
+          <td>
+            <span class="badge {{ correlation_status_tone(correlation.status) }}">
+              {{ correlation_status_label(correlation.status) }}
+            </span>
+          </td>
+          <td>
+            {% if correlation.cvss_score is not none %}
+            <span class="cvss-pill">
+              <span class="cvss-pill__score">{{ correlation.cvss_score }}</span>
+              <span class="badge {{ cvss_tone(correlation.cvss_severity) }}">{{ correlation.cvss_severity or "N/A" }}</span>
+            </span>
+            {% else %}
+            <span class="muted">Non disponible</span>
+            {% endif %}
+          </td>
+          <td class="correlation-reason">{{ correlation.reason or "-" }}</td>
+          <td class="mono">{{ correlation.first_detected_at.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td class="mono">{{ correlation.last_evaluated_at.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td>
+            <span class="badge {{ correlation_activity_tone(correlation.is_active) }}">
+              {{ correlation_activity_label(correlation.is_active) }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">Aucune correlation active detectee pour cet actif.</p>
+    <p class="sub">Les pages detail lisent uniquement les correlations deja persistees.</p>
+  </div>
+  {% endif %}
+</section>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Audit</h2>
+  </div>
+  <div class="detail-list">
+    <div>
+      <span>Date de creation</span>
+      <strong class="mono">{{ asset.created_at.strftime("%d/%m/%Y %H:%M") }}</strong>
+    </div>
+    <div>
+      <span>Derniere mise a jour</span>
+      <strong class="mono">{{ asset.updated_at.strftime("%d/%m/%Y %H:%M") }}</strong>
+    </div>
+  </div>
+</section>
+{% endblock %}

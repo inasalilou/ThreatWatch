@@ -1,0 +1,190 @@
+{% extends "layout/app.html" %}
+{% block title %}Alertes - {{ app_name }}{% endblock %}
+{% block page_title %}Alertes SOC{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Alertes SOC</h1>
+    <p>File de traitement issue des correlations confirmees et priorisees.</p>
+  </div>
+  <span class="badge tone-info">Workflow analyste</span>
+</div>
+
+{% if error %}
+<div class="alert-banner">
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.active_alerts }}</div>
+    <div class="stat-card__label">Alertes actives</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.new_alerts }}</div>
+    <div class="stat-card__label">Nouvelles</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.in_progress_alerts }}</div>
+    <div class="stat-card__label">En cours</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4v6c0 5-3.9 8.7-9 10-5.1-1.3-9-5-9-10V6l9-4z"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.critical_alerts }}</div>
+    <div class="stat-card__label">Priorite critique</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>File SOC</h2>
+      <span class="panel__sub">{{ result.total }} resultat{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+
+    <form class="filters" method="get" action="/alerts">
+      <div class="field field--inline">
+        <label for="q">Recherche</label>
+        <input id="q" name="q" type="text" value="{{ result.search }}" placeholder="CVE, actif, titre..." />
+      </div>
+
+      <div class="field field--inline">
+        <label for="status">Statut</label>
+        <select id="status" name="status">
+          <option value="">Tous</option>
+          {% for value, label in status_options %}
+          <option value="{{ value }}" {% if result.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="priority">Priorite SOC</label>
+        <select id="priority" name="priority">
+          <option value="">Toutes</option>
+          {% for value, label in priority_options %}
+          <option value="{{ value }}" {% if result.priority == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="severity">Severite technique</label>
+        <select id="severity" name="severity">
+          <option value="">Toutes</option>
+          {% for value, label in severity_options %}
+          <option value="{{ value }}" {% if result.severity == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="activity">Activite</label>
+        <select id="activity" name="activity">
+          {% for value, label in activity_options %}
+          <option value="{{ value }}" {% if result.is_active == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+      {% if result.search or result.status or result.priority or result.severity or result.is_active != "active" %}
+      <a class="btn btn-ghost" href="/alerts">Reinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th>CVE</th>
+          <th>Actif</th>
+          <th>Severite technique</th>
+          <th>Priorite SOC</th>
+          <th>Score</th>
+          <th>Statut</th>
+          <th>Dates</th>
+          <th>Etat</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in result.items %}
+        <tr>
+          <td><a class="table-title cve-link" href="/alerts/{{ item.alert.id }}">{{ item.alert.title }}</a></td>
+          <td><a class="mono cve-link" href="/vulnerabilities/{{ item.vulnerability.cve_id }}">{{ item.vulnerability.cve_id }}</a></td>
+          <td>
+            <a class="table-title cve-link" href="/assets/{{ item.asset.id }}">{{ item.asset.name }}</a>
+            {% if item.asset.hostname %}
+            <span class="table-title--inline mono">{{ item.asset.hostname }}</span>
+            {% endif %}
+          </td>
+          <td><span class="badge {{ cvss_tone(item.alert.severity.value) }}">{{ item.alert.severity.value }}</span></td>
+          <td><span class="badge {{ alert_priority_tone(item.alert.priority_level) }}">{{ item.alert.priority_level.value }}</span></td>
+          <td><span class="alert-score">{{ item.alert.priority_score }}</span></td>
+          <td><span class="badge {{ alert_status_tone(item.alert.status) }}">{{ alert_status_label(item.alert.status) }}</span></td>
+          <td>
+            <span class="mono">Detectee: {{ item.alert.first_detected_at.strftime("%d/%m/%Y %H:%M") }}</span>
+            <span class="table-title--inline mono">Vue: {{ item.alert.last_seen_at.strftime("%d/%m/%Y %H:%M") }}</span>
+          </td>
+          <td><span class="badge {{ alert_activity_tone(item.alert.is_active) }}">{{ alert_activity_label(item.alert.is_active) }}</span></td>
+          <td><a class="btn btn-ghost btn-compact" href="/alerts/{{ item.alert.id }}">Voir</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/alerts?page={{ result.page - 1 }}&{{ pagination_query }}">Precedent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Precedent</span>
+    {% endif %}
+
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/alerts?page={{ result.page + 1 }}&{{ pagination_query }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+    </div>
+    <p class="title">Aucune alerte SOC active.</p>
+    <p class="sub">Les alertes apparaitront ici apres creation depuis une correlation MATCH.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

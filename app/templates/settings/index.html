@@ -1,0 +1,119 @@
+{% extends "layout/app.html" %}
+{% block title %}Parametres - {{ app_name }}{% endblock %}
+{% block page_title %}Parametres{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Parametres</h1>
+    <p>Administration des reglages non sensibles de ThreatWatch.</p>
+  </div>
+  <span class="badge tone-info">ADMIN</span>
+</div>
+
+{% if error %}
+<div class="alert-banner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+{% if success %}
+<div class="notice-banner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>
+  <span>{{ success }}</span>
+</div>
+{% endif %}
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Priorite des configurations</h2>
+  </div>
+  <div class="detail-content">
+    <p class="muted">
+      Les secrets et valeurs techniques restent dans .env. La table app_settings
+      stocke uniquement des overrides administratifs non sensibles. Certains
+      services peuvent necessiter un redemarrage de l'application pour relire
+      ces valeurs.
+    </p>
+  </div>
+</section>
+
+<form class="asset-form" method="post" action="/settings">
+  {{ csrf_input(request) | safe }}
+  {% for section, settings in grouped_settings %}
+  {% if settings %}
+  <section class="panel asset-form__section">
+    <div class="panel__header">
+      <h2>{{ section }}</h2>
+    </div>
+    <div class="form-grid">
+      {% for item in settings %}
+      <div class="field">
+        <label for="{{ item.definition.key }}">{{ item.definition.label }}</label>
+
+        {% if item.definition.key == "ALERT_NOTIFICATION_MIN_PRIORITY" %}
+        <select id="{{ item.definition.key }}" name="{{ item.definition.key }}">
+          {% for priority in ["LOW", "MEDIUM", "HIGH", "CRITICAL"] %}
+          <option value="{{ priority }}" {% if item.value == priority %}selected{% endif %}>{{ priority }}</option>
+          {% endfor %}
+        </select>
+        {% elif item.definition.value_type == value_type_boolean %}
+        <label class="checkbox-field">
+          <input id="{{ item.definition.key }}" name="{{ item.definition.key }}" type="checkbox" {% if item.value == "true" %}checked{% endif %} />
+          <span>Actif</span>
+        </label>
+        {% else %}
+        <input
+          id="{{ item.definition.key }}"
+          name="{{ item.definition.key }}"
+          type="{{ 'number' if item.definition.value_type in [value_type_integer, value_type_float] else 'text' }}"
+          value="{{ item.value }}"
+          {% if item.definition.value_type == value_type_float %}step="0.1"{% endif %}
+          {% if item.definition.value_type == value_type_integer %}step="1"{% endif %}
+          required
+        />
+        {% endif %}
+
+        <p class="field-help">{{ item.definition.description }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endfor %}
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" href="/settings">Annuler</a>
+    <button class="btn btn-primary" type="submit">Enregistrer les parametres</button>
+  </div>
+</form>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Configuration sensible</h2>
+  </div>
+  <div class="detail-list detail-list--three">
+    <div>
+      <span>Base PostgreSQL</span>
+      <strong><span class="badge tone-info">{{ sensitive_status.database }}</span></strong>
+    </div>
+    <div>
+      <span>SMTP</span>
+      <strong><span class="badge tone-neutral">{{ sensitive_status.smtp }}</span></strong>
+    </div>
+    <div>
+      <span>NVD API</span>
+      <strong><span class="badge tone-info">{{ sensitive_status.nvd_api }}</span></strong>
+    </div>
+    <div>
+      <span>NVD API Key</span>
+      <strong><span class="badge tone-neutral">{{ sensitive_status.nvd_api_key }}</span></strong>
+    </div>
+    <div>
+      <span>Session applicative</span>
+      <strong><span class="badge tone-info">{{ sensitive_status.session }}</span></strong>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "layout/app.html" %}
+{% block title %}Utilisateurs - {{ app_name }}{% endblock %}
+{% block page_title %}Utilisateurs{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Utilisateurs</h1>
+    <p>Administration des comptes autorises a utiliser ThreatWatch.</p>
+  </div>
+  <a class="btn btn-primary" href="/users/new">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Ajouter un utilisateur
+  </a>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.4 2.7-5.8 6-5.8s6 2.4 6 5.8"/><path d="M16 11a3 3 0 110-6"/><path d="M17 14.4c2.3.5 4 2.5 4 5.6"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.total_users }}</div>
+    <div class="stat-card__label">Utilisateurs totaux</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.4 8.7-8 10-4.6-1.3-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-5"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.admin_users }}</div>
+    <div class="stat-card__label">Administrateurs</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-neutral">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.analyst_users }}</div>
+    <div class="stat-card__label">Analystes</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/><path d="M18 5l3-3"/><path d="M21 5l-3-3"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.inactive_users }}</div>
+    <div class="stat-card__label">Comptes inactifs</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>Comptes</h2>
+      <span class="panel__sub">{{ result.total }} utilisateur{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+
+    <form class="filters" method="get" action="/users">
+      <div class="field field--inline">
+        <label for="q">Recherche</label>
+        <input id="q" name="q" type="text" value="{{ result.search }}" placeholder="Nom ou e-mail..." />
+      </div>
+      <div class="field field--inline">
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="">Tous</option>
+          {% for value, label in role_options %}
+          <option value="{{ value }}" {% if result.role == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field--inline">
+        <label for="status">Etat</label>
+        <select id="status" name="status">
+          <option value="">Tous</option>
+          {% for value, label in status_options %}
+          <option value="{{ value }}" {% if result.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+      {% if result.search or result.role or result.status %}
+      <a class="btn btn-ghost" href="/users">Reinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Utilisateur</th>
+          <th>E-mail</th>
+          <th>Role</th>
+          <th>Etat</th>
+          <th>Creation</th>
+          <th>Derniere connexion</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in result.items %}
+        <tr>
+          <td><a class="table-title cve-link" href="/users/{{ user.id }}">{{ user.nom }}</a></td>
+          <td class="mono">{{ user.email }}</td>
+          <td><span class="badge tone-info">{{ role_label(user.role) }}</span></td>
+          <td><span class="badge {{ user_status_tone(user.actif) }}">{{ user_status_label(user.actif) }}</span></td>
+          <td class="mono">{{ user.date_creation.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td class="mono">{{ user.derniere_connexion.strftime("%d/%m/%Y %H:%M") if user.derniere_connexion else "-" }}</td>
+          <td>
+            <div class="table-actions">
+              <a class="btn btn-ghost btn-compact" href="/users/{{ user.id }}">Voir</a>
+              <a class="btn btn-ghost btn-compact" href="/users/{{ user.id }}/edit">Modifier</a>
+              {% if user.actif %}
+              <form method="post" action="/users/{{ user.id }}/disable">
+                {{ csrf_input(request) | safe }}
+                <button class="btn btn-ghost btn-compact" type="submit">Desactiver</button>
+              </form>
+              {% else %}
+              <form method="post" action="/users/{{ user.id }}/enable">
+                {{ csrf_input(request) | safe }}
+                <button class="btn btn-ghost btn-compact" type="submit">Reactiver</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/users?page={{ result.page - 1 }}&{{ pagination_query }}">Precedent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Precedent</span>
+    {% endif %}
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/users?page={{ result.page + 1 }}&{{ pagination_query }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    </div>
+    <p class="title">Aucun utilisateur ne correspond aux filtres.</p>
+    <p class="sub">Ajustez la recherche ou creez un nouveau compte.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

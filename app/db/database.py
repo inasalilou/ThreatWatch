@@ -62,8 +62,15 @@ def test_database_connection() -> None:
 def create_database_tables() -> None:
     """Cree les tables manquantes sans supprimer les tables existantes."""
     # Import necessaire pour enregistrer les modeles SQLAlchemy dans Base.
-    from app.models import security_bulletin, sync_history, vulnerability  # noqa: F401
+    from app.models import alert  # noqa: F401
+    from app.models import app_setting  # noqa: F401
     from app.models import user  # noqa: F401
+    from app.models import alert_treatment  # noqa: F401
+    from app.models import notification  # noqa: F401
+    from app.models import threat_source  # noqa: F401
+    from app.models import asset, security_bulletin, sync_history, vulnerability  # noqa: F401
+    from app.models import asset_vulnerability_correlation  # noqa: F401
+    from app.models import vulnerability_affected_product  # noqa: F401
 
     test_database_connection()
     Base.metadata.create_all(bind=engine)

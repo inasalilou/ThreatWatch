@@ -1,0 +1,186 @@
+{% extends "layout/app.html" %}
+{% block title %}Sources de veille - {{ app_name }}{% endblock %}
+{% block page_title %}Sources de veille{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Sources de veille</h1>
+    <p>Configuration persistante des sources de bulletins surveillees.</p>
+  </div>
+  {% if current_user.role.value == "ADMIN" %}
+  <a class="btn btn-primary" href="/sources/new">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Ajouter une source
+  </a>
+  {% else %}
+  <span class="badge tone-neutral">Lecture seule</span>
+  {% endif %}
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.total_sources }}</div>
+    <div class="stat-card__label">Sources totales</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.active_sources }}</div>
+    <div class="stat-card__label">Actives</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3.5-7.1"/><path d="M21 3v6h-6"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.sync_enabled_sources }}</div>
+    <div class="stat-card__label">Sync activee</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.failed_sources }}</div>
+    <div class="stat-card__label">Dernier echec</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>Catalogue</h2>
+      <span class="panel__sub">{{ result.total }} source{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+
+    <form class="filters" method="get" action="/sources">
+      <div class="field field--inline">
+        <label for="q">Recherche</label>
+        <input id="q" name="q" type="text" value="{{ result.search }}" placeholder="Nom, code, URL..." />
+      </div>
+      <div class="field field--inline">
+        <label for="source_type">Type</label>
+        <select id="source_type" name="source_type">
+          <option value="">Tous</option>
+          {% for value, label in source_types %}
+          <option value="{{ value }}" {% if result.source_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field--inline">
+        <label for="status">Etat</label>
+        <select id="status" name="status">
+          <option value="">Tous</option>
+          {% for value, label in status_options %}
+          <option value="{{ value }}" {% if result.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field--inline">
+        <label for="sync">Synchronisation</label>
+        <select id="sync" name="sync">
+          <option value="">Toutes</option>
+          {% for value, label in sync_options %}
+          <option value="{{ value }}" {% if result.sync_enabled == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+      {% if result.search or result.source_type or result.status or result.sync_enabled %}
+      <a class="btn btn-ghost" href="/sources">Reinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Code</th>
+          <th>Type</th>
+          <th>URL</th>
+          <th>Actif</th>
+          <th>Sync</th>
+          <th>Intervalle</th>
+          <th>Derniere sync</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for source in result.items %}
+        <tr>
+          <td><a class="table-title cve-link" href="/sources/{{ source.id }}">{{ source.name }}</a></td>
+          <td><span class="mono">{{ source.code }}</span></td>
+          <td>{{ source_type_label(source.source_type) }}</td>
+          <td class="source-url">{{ source.base_url }}</td>
+          <td><span class="badge {{ active_tone(source.is_active) }}">{{ active_label(source.is_active) }}</span></td>
+          <td><span class="badge {{ active_tone(source.sync_enabled) }}">{{ active_label(source.sync_enabled) }}</span></td>
+          <td class="mono">{{ source.sync_interval_minutes }} min</td>
+          <td class="mono">{{ source.last_sync_at.strftime("%d/%m/%Y %H:%M") if source.last_sync_at else "-" }}</td>
+          <td><span class="badge {{ sync_status_tone(source.last_sync_status) }}">{{ source.last_sync_status or "Jamais" }}</span></td>
+          <td>
+            <div class="table-actions">
+              <a class="btn btn-ghost btn-compact" href="/sources/{{ source.id }}">Voir</a>
+              {% if current_user.role.value == "ADMIN" %}
+              <a class="btn btn-ghost btn-compact" href="/sources/{{ source.id }}/edit">Modifier</a>
+              {% if source.is_active %}
+              <form method="post" action="/sources/{{ source.id }}/disable">
+                {{ csrf_input(request) | safe }}
+                <button class="btn btn-ghost btn-compact" type="submit">Desactiver</button>
+              </form>
+              {% else %}
+              <form method="post" action="/sources/{{ source.id }}/enable">
+                {{ csrf_input(request) | safe }}
+                <button class="btn btn-ghost btn-compact" type="submit">Reactiver</button>
+              </form>
+              {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/sources?page={{ result.page - 1 }}&{{ pagination_query }}">Precedent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Precedent</span>
+    {% endif %}
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/sources?page={{ result.page + 1 }}&{{ pagination_query }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg>
+    </div>
+    <p class="title">Aucune source de veille n'est enregistree.</p>
+    <p class="sub">Lancez le script d'initialisation pour creer DGSSI / maCERT.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

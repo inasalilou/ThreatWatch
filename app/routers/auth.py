@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.core.csrf import rotate_csrf_token
 from app.core.deps import get_current_user
 from app.core.templating import templates
 from app.db.database import get_db
@@ -67,6 +68,7 @@ def login_submit(
     # Création de la session sécurisée (cookie signé, cf. SessionMiddleware)
     request.session.clear()
     request.session["user_id"] = result.user.id
+    rotate_csrf_token(request)
     # Indicateur 'remember me' (utile pour ajuster la durée de session ultérieurement)
     request.session["remember"] = bool(remember)
 

@@ -1,0 +1,123 @@
+{% extends "layout/app.html" %}
+{% block title %}Utilisateur - {{ app_name }}{% endblock %}
+{% block page_title %}Utilisateur{% endblock %}
+
+{% block content %}
+{% if not user %}
+<div class="empty-state">
+  <div class="empty-state__icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+  </div>
+  <p class="title">Utilisateur introuvable</p>
+  <p class="sub">{{ error or "Aucun compte ne correspond a cet identifiant." }}</p>
+  <div class="empty-state__actions">
+    <a class="btn btn-ghost" href="/users">Retour aux utilisateurs</a>
+  </div>
+</div>
+{% else %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="/users" class="back-link">Retour</a>
+    <h1>{{ user.nom }}</h1>
+    <p>{{ user.email }}</p>
+  </div>
+  <div class="header-actions">
+    <span class="badge {{ user_status_tone(user.actif) }}">{{ user_status_label(user.actif) }}</span>
+    <a class="btn btn-ghost" href="/users/{{ user.id }}/edit">Modifier</a>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert-banner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<div class="detail-grid">
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Identite</h2>
+    </div>
+    <div class="detail-list">
+      <div>
+        <span>Nom</span>
+        <strong>{{ user.nom }}</strong>
+      </div>
+      <div>
+        <span>E-mail</span>
+        <strong class="mono">{{ user.email }}</strong>
+      </div>
+      <div>
+        <span>Role</span>
+        <strong><span class="badge tone-info">{{ role_label(user.role) }}</span></strong>
+      </div>
+      <div>
+        <span>Etat</span>
+        <strong><span class="badge {{ user_status_tone(user.actif) }}">{{ user_status_label(user.actif) }}</span></strong>
+      </div>
+      <div>
+        <span>Creation</span>
+        <strong>{{ user.date_creation.strftime("%d/%m/%Y %H:%M") }}</strong>
+      </div>
+      <div>
+        <span>Derniere connexion</span>
+        <strong>{{ user.derniere_connexion.strftime("%d/%m/%Y %H:%M") if user.derniere_connexion else "-" }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Actions</h2>
+    </div>
+    <div class="detail-content">
+      <div class="table-actions">
+        <a class="btn btn-ghost" href="/users/{{ user.id }}/edit">Modifier</a>
+        {% if user.actif %}
+        <form method="post" action="/users/{{ user.id }}/disable">
+          {{ csrf_input(request) | safe }}
+          <button class="btn btn-ghost" type="submit">Desactiver</button>
+        </form>
+        {% else %}
+        <form method="post" action="/users/{{ user.id }}/enable">
+          {{ csrf_input(request) | safe }}
+          <button class="btn btn-ghost" type="submit">Reactiver</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Reinitialisation du mot de passe</h2>
+  </div>
+
+  {% if reset_error %}
+  <div class="alert-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+    <span>{{ reset_error }}</span>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/users/{{ user.id }}/reset-password">
+    {{ csrf_input(request) | safe }}
+    <div class="form-grid">
+      <div class="field">
+        <label for="password">Nouveau mot de passe *</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" required />
+      </div>
+      <div class="field">
+        <label for="password_confirmation">Confirmation *</label>
+        <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Reinitialiser le mot de passe</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

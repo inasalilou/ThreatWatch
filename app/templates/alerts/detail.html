@@ -1,0 +1,259 @@
+{% extends "layout/app.html" %}
+{% block title %}Alerte SOC - {{ app_name }}{% endblock %}
+{% block page_title %}Detail alerte{% endblock %}
+
+{% block content %}
+{% if detail %}
+{% set alert = detail.alert %}
+{% set asset = detail.asset %}
+{% set vulnerability = detail.vulnerability %}
+{% set correlation = detail.correlation %}
+
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="/alerts" class="back-link">Retour aux alertes</a>
+    <h1>{{ alert.title }}</h1>
+    <p>Priorisation SOC distincte de la severite technique CVSS.</p>
+  </div>
+  <div class="header-actions">
+    <span class="badge {{ alert_priority_tone(alert.priority_level) }}">{{ alert.priority_level.value }}</span>
+    <span class="badge {{ alert_status_tone(alert.status) }}">{{ alert_status_label(alert.status) }}</span>
+  </div>
+</div>
+
+{% if message %}
+<div class="status-banner tone-success">
+  <strong>{{ message }}</strong>
+  <span>Workflow mis a jour.</span>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert-banner">
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <div>
+      <h2>Alerte</h2>
+      <span class="panel__sub">{{ alert.source }}</span>
+    </div>
+    <div class="header-actions">
+      {% if alert.status.value == "NEW" %}
+      <form method="post" action="/alerts/{{ alert.id }}/start">
+        {{ csrf_input(request) | safe }}
+        <button class="btn btn-ghost btn-compact" type="submit">Prendre en charge</button>
+      </form>
+      {% elif alert.status.value == "IN_PROGRESS" %}
+      <form method="post" action="/alerts/{{ alert.id }}/resolve">
+        {{ csrf_input(request) | safe }}
+        <button class="btn btn-ghost btn-compact" type="submit">Resoudre</button>
+      </form>
+      {% elif alert.status.value == "RESOLVED" %}
+      <form method="post" action="/alerts/{{ alert.id }}/close">
+        {{ csrf_input(request) | safe }}
+        <button class="btn btn-ghost btn-compact" type="submit">Cloturer</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-list detail-list--three">
+    <div>
+      <span>Titre</span>
+      <strong>{{ alert.title }}</strong>
+    </div>
+    <div>
+      <span>Statut</span>
+      <strong><span class="badge {{ alert_status_tone(alert.status) }}">{{ alert_status_label(alert.status) }}</span></strong>
+    </div>
+    <div>
+      <span>Priorite SOC</span>
+      <strong><span class="badge {{ alert_priority_tone(alert.priority_level) }}">{{ alert.priority_level.value }}</span></strong>
+    </div>
+    <div>
+      <span>Score SOC</span>
+      <strong class="alert-score">{{ alert.priority_score }}</strong>
+    </div>
+    <div>
+      <span>Premiere detection</span>
+      <strong class="mono">{{ alert.first_detected_at.strftime("%d/%m/%Y %H:%M") }}</strong>
+    </div>
+    <div>
+      <span>Derniere vue</span>
+      <strong class="mono">{{ alert.last_seen_at.strftime("%d/%m/%Y %H:%M") }}</strong>
+    </div>
+  </div>
+</section>
+
+<section class="panel detail-panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>Traitement analyste</h2>
+      <span class="panel__sub">Historique chronologique des actions SOC</span>
+    </div>
+    <span class="badge {{ alert_status_tone(alert.status) }}">{{ alert_status_label(alert.status) }}</span>
+  </div>
+
+  <div class="detail-content">
+    <h3>Ajouter une observation</h3>
+    <form class="comment-form" method="post" action="/alerts/{{ alert.id }}/comments">
+      {{ csrf_input(request) | safe }}
+      <div class="field">
+        <label for="comment">Observation analyste</label>
+        <textarea id="comment" name="comment" maxlength="2000" placeholder="Documenter une verification, une action realisee ou une information utile au traitement SOC."></textarea>
+      </div>
+      <button class="btn btn-ghost" type="submit">Ajouter l'observation</button>
+    </form>
+  </div>
+
+  {% if treatments %}
+  <div class="treatment-timeline">
+    {% for treatment in treatments %}
+    <article class="treatment-event">
+      <div class="treatment-event__meta">
+        <span class="badge tone-info">{{ action_type_label(treatment.action_type) }}</span>
+        <span class="mono">{{ treatment.created_at.strftime("%d/%m/%Y %H:%M") }}</span>
+      </div>
+      <div class="treatment-event__body">
+        <strong>{{ treatment.analyst.nom if treatment.analyst else "Utilisateur inconnu" }}</strong>
+        <span class="mono">
+          {{ alert_status_label(treatment.previous_status) }}
+          -> {{ alert_status_label(treatment.new_status) }}
+        </span>
+        {% if treatment.comment %}
+        <p>{{ treatment.comment }}</p>
+        {% else %}
+        <p class="muted">Aucun commentaire associe.</p>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">Aucun traitement analyste trace pour cette alerte.</p>
+    <p class="sub">Les prises en charge, observations et clotures apparaitront ici.</p>
+  </div>
+  {% endif %}
+</section>
+
+<div class="detail-grid detail-panel">
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Vulnerabilite</h2>
+      <span class="badge {{ cvss_tone(alert.severity.value) }}">{{ alert.severity.value }}</span>
+    </div>
+    <div class="detail-list">
+      <div>
+        <span>CVE</span>
+        <strong><a class="mono cve-link" href="/vulnerabilities/{{ vulnerability.cve_id }}">{{ vulnerability.cve_id }}</a></strong>
+      </div>
+      <div>
+        <span>CVSS</span>
+        <strong>{{ vulnerability.cvss_score if vulnerability.cvss_score is not none else "Non disponible" }}</strong>
+      </div>
+      <div>
+        <span>Severite technique</span>
+        <strong>{{ vulnerability.cvss_severity or alert.severity.value }}</strong>
+      </div>
+      <div>
+        <span>Version CVSS</span>
+        <strong>{{ vulnerability.cvss_version or "Non disponible" }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Actif</h2>
+      <span class="badge {{ criticality_tone(asset.criticality) }}">{{ criticality_label(asset.criticality) }}</span>
+    </div>
+    <div class="detail-list">
+      <div>
+        <span>Nom</span>
+        <strong><a class="cve-link" href="/assets/{{ asset.id }}">{{ asset.name }}</a></strong>
+      </div>
+      <div>
+        <span>Type</span>
+        <strong>{{ asset_type_label(asset.asset_type) }}</strong>
+      </div>
+      <div>
+        <span>Produit</span>
+        <strong>{{ asset.product or "-" }} / <span class="mono">{{ asset.product_version or "-" }}</span></strong>
+      </div>
+      <div>
+        <span>Environnement</span>
+        <strong><span class="badge {{ environment_tone(asset.environment) }}">{{ environment_label(asset.environment) }}</span></strong>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Correlation</h2>
+    <span class="badge {{ correlation_status_tone(correlation.status) }}">{{ correlation_status_label(correlation.status) }}</span>
+  </div>
+  <div class="detail-list detail-list--three">
+    <div>
+      <span>Statut correlation</span>
+      <strong>{{ correlation_status_label(correlation.status) }}</strong>
+    </div>
+    <div>
+      <span>Premiere detection</span>
+      <strong class="mono">{{ correlation.first_detected_at.strftime("%d/%m/%Y %H:%M") }}</strong>
+    </div>
+    <div>
+      <span>Derniere evaluation</span>
+      <strong class="mono">{{ correlation.last_evaluated_at.strftime("%d/%m/%Y %H:%M") }}</strong>
+    </div>
+    <div>
+      <span>Etat correlation</span>
+      <strong>{{ "Active" if correlation.is_active else "Inactive" }}</strong>
+    </div>
+  </div>
+  <div class="detail-content">
+    <h3>Raison</h3>
+    <p>{{ correlation.reason or "Aucune raison enregistree." }}</p>
+  </div>
+</section>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Priorisation SOC</h2>
+    <span class="badge {{ alert_priority_tone(alert.priority_level) }}">{{ alert.priority_level.value }}</span>
+  </div>
+  <div class="detail-list">
+    <div>
+      <span>priority_score</span>
+      <strong class="alert-score">{{ alert.priority_score }}</strong>
+    </div>
+    <div>
+      <span>priority_level</span>
+      <strong>{{ alert.priority_level.value }}</strong>
+    </div>
+  </div>
+  <div class="detail-content">
+    <h3>priority_reason</h3>
+    <p class="priority-reason">{{ alert.priority_reason or "Justification non disponible." }}</p>
+  </div>
+</section>
+
+{% else %}
+<div class="page-header">
+  <a href="/alerts" class="back-link">Retour aux alertes</a>
+  <h1>Alerte introuvable</h1>
+  <p>Aucune alerte SOC ne correspond a l'identifiant demande.</p>
+</div>
+<div class="empty-state">
+  <div class="empty-state__icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+  </div>
+  <p class="title">Alerte introuvable.</p>
+  <p class="sub">{{ alert_id }}</p>
+</div>
+{% endif %}
+{% endblock %}

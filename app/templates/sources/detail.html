@@ -1,0 +1,141 @@
+{% extends "layout/app.html" %}
+{% block title %}Source de veille - {{ app_name }}{% endblock %}
+{% block page_title %}Source de veille{% endblock %}
+
+{% block content %}
+{% if not source %}
+<div class="empty-state">
+  <div class="empty-state__icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+  </div>
+  <p class="title">Source introuvable</p>
+  <p class="sub">Aucune source ne correspond a cet identifiant.</p>
+  <div class="empty-state__actions">
+    <a class="btn btn-ghost" href="/sources">Retour aux sources</a>
+  </div>
+</div>
+{% else %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <a href="/sources" class="back-link">Retour</a>
+    <h1>{{ source.name }}</h1>
+    <p>{{ source.description or "Source de veille ThreatWatch." }}</p>
+  </div>
+  <div class="header-actions">
+    <span class="badge {{ active_tone(source.is_active) }}">{{ "Active" if source.is_active else "Inactive" }}</span>
+    {% if current_user.role.value == "ADMIN" %}
+    <a class="btn btn-ghost" href="/sources/{{ source.id }}/edit">Modifier</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-grid">
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Configuration</h2>
+    </div>
+    <div class="detail-list">
+      <div>
+        <span>Code</span>
+        <strong class="mono">{{ source.code }}</strong>
+      </div>
+      <div>
+        <span>Type</span>
+        <strong>{{ source_type_label(source.source_type) }}</strong>
+      </div>
+      <div>
+        <span>URL</span>
+        <strong class="source-url">{{ source.base_url }}</strong>
+      </div>
+      <div>
+        <span>Synchronisation</span>
+        <strong><span class="badge {{ active_tone(source.sync_enabled) }}">{{ active_label(source.sync_enabled) }}</span></strong>
+      </div>
+      <div>
+        <span>Intervalle</span>
+        <strong>{{ source.sync_interval_minutes }} minutes</strong>
+      </div>
+      <div>
+        <span>Derniere sync</span>
+        <strong>{{ source.last_sync_at.strftime("%d/%m/%Y %H:%M") if source.last_sync_at else "-" }}</strong>
+      </div>
+      <div>
+        <span>Statut dernier run</span>
+        <strong><span class="badge {{ sync_status_tone(source.last_sync_status) }}">{{ source.last_sync_status or "Jamais" }}</span></strong>
+      </div>
+      <div>
+        <span>Creation</span>
+        <strong>{{ source.created_at.strftime("%d/%m/%Y %H:%M") }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__header">
+      <h2>Actions</h2>
+    </div>
+    <div class="detail-content">
+      {% if current_user.role.value == "ADMIN" %}
+      <div class="table-actions">
+        <a class="btn btn-ghost" href="/sources/{{ source.id }}/edit">Modifier</a>
+        {% if source.is_active %}
+        <form method="post" action="/sources/{{ source.id }}/disable">
+          {{ csrf_input(request) | safe }}
+          <button class="btn btn-ghost" type="submit">Desactiver</button>
+        </form>
+        {% else %}
+        <form method="post" action="/sources/{{ source.id }}/enable">
+          {{ csrf_input(request) | safe }}
+          <button class="btn btn-ghost" type="submit">Reactiver</button>
+        </form>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="muted">Consultation seule pour les analystes.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<section class="panel detail-panel">
+  <div class="panel__header">
+    <h2>Dernieres synchronisations liees</h2>
+  </div>
+  {% if recent_syncs %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Debut</th>
+          <th>Fin</th>
+          <th>Duree</th>
+          <th>Statut</th>
+          <th>Detectes</th>
+          <th>Nouveaux</th>
+          <th>Mis a jour</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sync in recent_syncs %}
+        <tr>
+          <td class="mono">{{ sync.started_at.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td class="mono">{{ sync.finished_at.strftime("%d/%m/%Y %H:%M") if sync.finished_at else "-" }}</td>
+          <td class="mono">{{ format_duration(sync.started_at, sync.finished_at) }}</td>
+          <td><span class="badge {{ sync_status_tone(sync.status.value) }}">{{ sync.status.value }}</span></td>
+          <td>{{ sync.items_found }}</td>
+          <td>{{ sync.items_created }}</td>
+          <td>{{ sync.items_updated }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">Aucun historique lie pour cette source.</p>
+    <p class="sub">Les prochaines synchronisations dont le champ source vaut {{ source.code }} apparaitront ici.</p>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -9,15 +9,30 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import settings
+from app.core.csrf import validate_csrf_request
 from app.core.deps import RedirectToLogin
 from app.db.database import create_database_tables, get_safe_database_url
-from app.routers import auth, bulletins, dashboard, synchronizations, vulnerabilities
+from app.routers import (
+    alerts,
+    assets,
+    auth,
+    bulletins,
+    correlations,
+    dashboard,
+    notifications,
+    settings as settings_router,
+    synchronizations,
+    threat_sources,
+    treatments,
+    users,
+    vulnerabilities,
+)
 from app.services.scheduler_service import start_scheduler, stop_scheduler
 
 # Crée les tables si elles n'existent pas encore (pratique pour la démo ;
@@ -44,6 +59,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 
+
+@app.middleware("http")
+async def csrf_protection(request: Request, call_next):
+    try:
+        await validate_csrf_request(request)
+    except HTTPException as exc:
+        return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
+    return await call_next(request)
+
 # --- Session sécurisée (cookie signé côté serveur via SESSION_SECRET_KEY) ---
 app.add_middleware(
     SessionMiddleware,
@@ -58,6 +82,11 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok", "service": settings.APP_NAME}
+
+
 @app.exception_handler(RedirectToLogin)
 def handle_redirect_to_login(request: Request, exc: RedirectToLogin):
     url = "/login"
@@ -68,7 +97,15 @@ def handle_redirect_to_login(request: Request, exc: RedirectToLogin):
 
 # --- Routeurs ---
 app.include_router(auth.router)
+app.include_router(alerts.router)
+app.include_router(assets.router)
 app.include_router(bulletins.router)
+app.include_router(correlations.router)
 app.include_router(dashboard.router)
+app.include_router(notifications.router)
+app.include_router(settings_router.router)
 app.include_router(synchronizations.router)
+app.include_router(threat_sources.router)
+app.include_router(treatments.router)
+app.include_router(users.router)
 app.include_router(vulnerabilities.router)

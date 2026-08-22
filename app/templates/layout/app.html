@@ -21,11 +21,10 @@
         </a>
       </li>
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/alerts" class="nav-item {% if active_page == 'alerts' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l9 4v6c0 5-3.9 8.7-9 10-5.1-1.3-9-5-9-10V6l9-4z"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16" r="0.6" fill="currentColor"/></svg>
           Alertes
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
       <li>
         <a href="/bulletins" class="nav-item {% if active_page == 'bulletins' %}is-active{% endif %}">
@@ -40,36 +39,38 @@
         </a>
       </li>
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/assets" class="nav-item {% if active_page == 'assets' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
           Actifs
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/correlations" class="nav-item {% if active_page == 'correlations' %}is-active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7h4v4H7z"/><path d="M13 13h4v4h-4z"/><path d="M11 9h2a2 2 0 012 2v2"/><path d="M5 17h4v-4H5z"/><path d="M9 15h4"/></svg>
+          Corrélations
+        </a>
+      </li>
+      <li>
+        <a href="/treatments" class="nav-item {% if active_page == 'treatments' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
           Traitements
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/notifications" class="nav-item {% if active_page == 'notifications' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
           Notifications
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
     </ul>
 
     <div class="nav-section-label" style="margin-top: 14px;">Configuration</div>
     <ul>
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/sources" class="nav-item {% if active_page == 'sources' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
           Sources de veille
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
       <li>
         <a href="/synchronizations" class="nav-item {% if active_page == 'synchronizations' %}is-active{% endif %}">
@@ -77,20 +78,20 @@
           Synchronisations
         </a>
       </li>
+      {% if current_user.role.value == "ADMIN" %}
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/users" class="nav-item {% if active_page == 'users' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="18" cy="9" r="2.4"/><path d="M15.8 14.3c2.6.4 4.7 2.4 4.7 5.7"/></svg>
           Utilisateurs
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
       <li>
-        <span class="nav-item is-disabled">
+        <a href="/settings" class="nav-item {% if active_page == 'settings' %}is-active{% endif %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 11-4 0v-.2a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 110-4h.2a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 114 0v.2a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 110 4h-.2a1.7 1.7 0 00-1.6 1z"/></svg>
           Paramètres
-          <span class="soon-badge">bientôt</span>
-        </span>
+        </a>
       </li>
+      {% endif %}
     </ul>
 
   </aside>
@@ -99,10 +100,17 @@
     <header class="topbar">
       <div class="topbar__title">{% block page_title %}{{ app_name }}{% endblock %}</div>
       <div class="topbar__right">
-        <button class="icon-btn" aria-label="Notifications">
+        {% if notification_unread_count is defined %}
+          {% set unread_count = notification_unread_count %}
+        {% else %}
+          {% set unread_count = unread_notification_count(current_user) %}
+        {% endif %}
+        <a href="/notifications" class="icon-btn {% if active_page == 'notifications' %}is-active{% endif %}" aria-label="Notifications">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
-          <span class="icon-btn__dot" aria-hidden="true"></span>
-        </button>
+          {% if unread_count > 0 %}
+          <span class="icon-btn__badge">{{ unread_count }}</span>
+          {% endif %}
+        </a>
 
         <div class="user-menu" data-user-menu>
           <button class="user-chip" data-user-menu-trigger>
