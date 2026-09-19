@@ -26,6 +26,7 @@ from app.routers import (
     correlations,
     dashboard,
     notifications,
+    siem,
     settings as settings_router,
     synchronizations,
     threat_sources,
@@ -103,6 +104,7 @@ app.include_router(bulletins.router)
 app.include_router(correlations.router)
 app.include_router(dashboard.router)
 app.include_router(notifications.router)
+app.include_router(siem.router)
 app.include_router(settings_router.router)
 app.include_router(synchronizations.router)
 app.include_router(threat_sources.router)

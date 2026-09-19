@@ -14,6 +14,7 @@ from app.models.asset_vulnerability_correlation import (
     AssetVulnerabilityCorrelation,
     CorrelationPersistenceStatus,
 )
+from app.models.siem_alert import SiemAlert
 from app.models.vulnerability import EnrichmentStatus, Vulnerability
 from app.models.vulnerability_affected_product import VulnerabilityAffectedProduct
 
@@ -40,6 +41,7 @@ __all__ = [
     "AssetType",
     "AssetVulnerabilityCorrelation",
     "CorrelationPersistenceStatus",
+    "SiemAlert",
     "EnrichmentStatus",
     "Vulnerability",
     "VulnerabilityAffectedProduct",

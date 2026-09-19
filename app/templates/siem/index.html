@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Détections SIEM - {{ app_name }}{% endblock %}
+{% block page_title %}Détections SIEM{% endblock %}
+
+{% block content %}
+<div class="page-header page-header--with-actions">
+  <div>
+    <h1>Détections SIEM</h1>
+    <p>Alertes Wazuh enrichies Sysmon et MITRE ATT&CK corrélées avec les actifs Threat Watch.</p>
+  </div>
+  <span class="badge tone-info">Source : Wazuh</span>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-accent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4v3"/><path d="M12 17v3"/><path d="M4 12h3"/><path d="M17 12h3"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.total_recent_24h }}</div>
+    <div class="stat-card__label">Détections SIEM 24h</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-critical">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4v6c0 5-3.9 8.7-9 10-5.1-1.3-9-5-9-10V6l9-4z"/><line x1="12" y1="8" x2="12" y2="13"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.high_or_critical_alerts }}</div>
+    <div class="stat-card__label">Alertes critiques / hautes</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.affected_assets }}</div>
+    <div class="stat-card__label">Actifs concernés</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__top">
+      <div class="stat-card__icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h4v4H7z"/><path d="M13 13h4v4h-4z"/><path d="M11 9h2a2 2 0 012 2v2"/></svg>
+      </div>
+    </div>
+    <div class="stat-card__value">{{ stats.unique_mitre_techniques }}</div>
+    <div class="stat-card__label">Techniques MITRE uniques</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header panel__header--stacked">
+    <div>
+      <h2>Alertes SIEM</h2>
+      <span class="panel__sub">{{ result.total }} résultat{{ "s" if result.total > 1 else "" }}</span>
+    </div>
+
+    <form class="filters" method="get" action="/siem">
+      <div class="field field--inline">
+        <label for="q">Recherche</label>
+        <input id="q" name="q" type="text" value="{{ result.search }}" placeholder="Agent, actif, IP..." />
+      </div>
+
+      <div class="field field--inline">
+        <label for="severity">Sévérité</label>
+        <select id="severity" name="severity">
+          <option value="">Toutes</option>
+          {% for value, label in severity_options %}
+          <option value="{{ value }}" {% if result.severity == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field field--inline">
+        <label for="technique">Technique MITRE</label>
+        <select id="technique" name="technique">
+          <option value="">Toutes</option>
+          {% for technique in mitre_techniques %}
+          <option value="{{ technique }}" {% if result.technique == technique %}selected{% endif %}>{{ technique }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+      {% if result.search or result.severity or result.technique %}
+      <a class="btn btn-ghost" href="/siem">Réinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if result.items %}
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Date / Heure</th>
+          <th>Actif / Agent</th>
+          <th>Technique MITRE</th>
+          <th>Description de l'événement</th>
+          <th>Sévérité</th>
+          <th>Corrélation Actif</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in result.items %}
+        <tr>
+          <td class="mono">{{ format_datetime(item.alert.date_detection) }}</td>
+          <td>
+            {% if item.asset %}
+            <a class="table-title cve-link" href="/assets/{{ item.asset.id }}">{{ item.asset.name }}</a>
+            <span class="table-title--inline">{{ item.alert.agent_name or "-" }}</span>
+            {% else %}
+            <span class="table-title">{{ item.alert.agent_name or "Agent inconnu" }}</span>
+            {% if item.alert.agent_ip %}<span class="table-title--inline">{{ item.alert.agent_ip }}</span>{% endif %}
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge tone-info">{{ item.alert.mitre_technique_id or "N/A" }}</span>
+            {% if item.alert.mitre_tactic %}<span class="table-title--inline">{{ item.alert.mitre_tactic }}</span>{% endif %}
+          </td>
+          <td class="correlation-reason">{{ item.alert.description or "Événement Wazuh sans description." }}</td>
+          <td>
+            <span class="badge {{ siem_level_tone(item.alert.rule_level) }}">
+              {{ siem_level_label(item.alert.rule_level) }}
+            </span>
+          </td>
+          <td>
+            <span class="badge {{ asset_correlation_tone(item.asset) }}">
+              {{ asset_correlation_label(item.asset) }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if result.has_previous %}
+    <a class="btn btn-ghost btn-compact" href="/siem?page={{ result.page - 1 }}&{{ pagination_query }}">Précédent</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Précédent</span>
+    {% endif %}
+
+    <span class="pagination__status">Page {{ result.page }} / {{ result.total_pages }}</span>
+
+    {% if result.has_next %}
+    <a class="btn btn-ghost btn-compact" href="/siem?page={{ result.page + 1 }}&{{ pagination_query }}">Suivant</a>
+    {% else %}
+    <span class="btn btn-ghost btn-compact is-disabled">Suivant</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <p class="title">Aucune détection SIEM trouvée</p>
+    <p class="sub">Modifiez les filtres ou vérifiez l'envoi des alertes Wazuh vers le webhook.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

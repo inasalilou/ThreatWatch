@@ -1,0 +1,26 @@
+{% extends "layout/app.html" %}
+{% block title %}{{ interface_title }} - {{ app_name }}{% endblock %}
+{% block page_title %}{{ interface_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ interface_title }}</h1>
+  <p>Cette interface est temporairement inaccessible.</p>
+</div>
+
+<div class="panel">
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 7v5l3 2"/>
+      </svg>
+    </div>
+    <p class="title">Bientot disponible.</p>
+    <p class="sub">Le module est conserve dans l'application et sera reactive plus tard.</p>
+    <div class="empty-state__actions">
+      <a class="btn btn-primary" href="/alerts">Retour aux alertes</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

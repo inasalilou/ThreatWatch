@@ -19,6 +19,7 @@ from app.services.dashboard_service import (
     get_dashboard_data,
     notification_severity_tone,
     severity_tone,
+    siem_level_tone,
     sync_status_tone,
 )
 
@@ -46,6 +47,7 @@ def dashboard_page(
             "criticality_tone": criticality_tone,
             "sync_status_tone": sync_status_tone,
             "severity_tone": severity_tone,
+            "siem_level_tone": siem_level_tone,
             "format_datetime": format_datetime,
         },
     )

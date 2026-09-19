@@ -3,3 +3,26 @@ venv/
 .venv/
 __pycache__/
 *.pyc
+# Secrets et variables d'environnement
+.env
+*.env
+*.pem
+*.key
+*.crt
+certs/
+*password*
+*.log
+__pycache__/
+*.pyc
+
+# Fichiers d'environnement et certificats sensibles
+.env
+*.env
+*.pem
+*.key
+*.crt
+certs/
+*password*
+*.log
+__pycache__/
+*.pyc

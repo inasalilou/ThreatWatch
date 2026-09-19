@@ -82,6 +82,10 @@
       <span class="badge tone-info">MATCH actifs {{ dashboard.counters.active_match_correlations }}</span>
       <span class="badge tone-warning">Notifications non lues {{ dashboard.counters.unread_notifications }}</span>
       <span class="badge tone-success">NVD SUCCESS {{ dashboard.counters.nvd_success_vulnerabilities }}</span>
+      <span class="badge tone-critical">SIEM 24h {{ dashboard.siem.recent_count }}</span>
+      {% for technique in dashboard.siem.top_mitre_techniques %}
+      <span class="badge tone-neutral">{{ technique.technique_id }} {{ technique.count }}</span>
+      {% endfor %}
     </div>
   </div>
 </div>
@@ -123,6 +127,56 @@
   <div class="empty-state empty-state--compact">
     <p class="title">Aucune alerte SOC active.</p>
     <p class="sub">Aucune correlation MATCH active n'a genere d'alerte pour le moment.</p>
+  </div>
+  {% endif %}
+</section>
+
+<section class="panel dashboard-section dashboard-siem-panel">
+  <div class="panel__header">
+    <h2>Dernieres detections SIEM</h2>
+  </div>
+
+  {% if dashboard.siem.recent_detections %}
+  <div class="table-scroll">
+    <table class="dashboard-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Agent / Actif</th>
+          <th>Technique MITRE</th>
+          <th>Description</th>
+          <th>Level</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in dashboard.siem.recent_detections %}
+        <tr>
+          <td class="mono">{{ format_datetime(item.date_detection) }}</td>
+          <td>
+            {% if item.asset_id %}
+            <a class="table-title cve-link" href="/assets/{{ item.asset_id }}">{{ item.asset_name }}</a>
+            <span class="table-title--inline">{{ item.agent_name or "-" }}</span>
+            {% else %}
+            <span class="table-title">{{ item.agent_name or "Agent inconnu" }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge tone-info">{{ item.mitre_technique_id or "N/A" }}</span>
+            {% if item.mitre_tactic %}
+            <span class="table-title--inline">{{ item.mitre_tactic }}</span>
+            {% endif %}
+          </td>
+          <td class="correlation-reason">{{ item.description or "Detection Wazuh sans description." }}</td>
+          <td><span class="badge {{ siem_level_tone(item.rule_level) }}">{{ item.rule_level or "N/A" }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state empty-state--compact">
+    <p class="title">Aucune detection SIEM recente.</p>
+    <p class="sub">Les alertes Wazuh enrichies MITRE apparaitront ici apres ingestion.</p>
   </div>
   {% endif %}
 </section>

@@ -67,6 +67,7 @@ def create_database_tables() -> None:
     from app.models import user  # noqa: F401
     from app.models import alert_treatment  # noqa: F401
     from app.models import notification  # noqa: F401
+    from app.models import siem_alert  # noqa: F401
     from app.models import threat_source  # noqa: F401
     from app.models import asset, security_bulletin, sync_history, vulnerability  # noqa: F401
     from app.models import asset_vulnerability_correlation  # noqa: F401

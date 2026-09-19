@@ -7,7 +7,7 @@ regroupe uniquement des lectures agregees et des listes limitees.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import case, func, or_, select
@@ -21,6 +21,7 @@ from app.models.asset_vulnerability_correlation import (
     CorrelationPersistenceStatus,
 )
 from app.models.notification import Notification
+from app.models.siem_alert import SiemAlert
 from app.models.sync_history import SyncHistory
 from app.models.user import Utilisateur
 from app.models.vulnerability import EnrichmentStatus, Vulnerability
@@ -117,6 +118,32 @@ class PipelineStatus:
 
 
 @dataclass(frozen=True)
+class SiemTechniqueStat:
+    technique_id: str
+    count: int
+
+
+@dataclass(frozen=True)
+class RecentSiemDetectionItem:
+    alert_id: str
+    asset_id: str | None
+    asset_name: str | None
+    agent_name: str | None
+    mitre_technique_id: str | None
+    mitre_tactic: str | None
+    description: str | None
+    rule_level: int | None
+    date_detection: datetime
+
+
+@dataclass(frozen=True)
+class SiemDashboardStats:
+    recent_count: int
+    top_mitre_techniques: list[SiemTechniqueStat]
+    recent_detections: list[RecentSiemDetectionItem]
+
+
+@dataclass(frozen=True)
 class DashboardData:
     counters: DashboardCounters
     recent_alerts: list[RecentAlertItem]
@@ -126,6 +153,7 @@ class DashboardData:
     recent_notifications: list[RecentNotificationItem]
     sync_summary: SyncSummary
     pipeline_status: PipelineStatus
+    siem: SiemDashboardStats
 
 
 def get_dashboard_data(db: Session, current_user: Utilisateur) -> DashboardData:
@@ -138,6 +166,7 @@ def get_dashboard_data(db: Session, current_user: Utilisateur) -> DashboardData:
         recent_notifications=get_recent_notifications(db, current_user),
         sync_summary=get_sync_summary(db),
         pipeline_status=get_pipeline_status(db),
+        siem=get_siem_dashboard_stats(db),
     )
 
 
@@ -369,6 +398,68 @@ def get_pipeline_status(db: Session) -> PipelineStatus:
     )
 
 
+def get_siem_dashboard_stats(db: Session) -> SiemDashboardStats:
+    return SiemDashboardStats(
+        recent_count=get_recent_siem_count(db),
+        top_mitre_techniques=get_top_mitre_techniques(db),
+        recent_detections=get_recent_siem_detections(db),
+    )
+
+
+def get_recent_siem_count(db: Session, hours: int = 24) -> int:
+    since = datetime.utcnow() - timedelta(hours=hours)
+    return (
+        db.scalar(
+            select(func.count(SiemAlert.id)).where(SiemAlert.date_detection >= since)
+        )
+        or 0
+    )
+
+
+def get_top_mitre_techniques(
+    db: Session,
+    limit: int = 5,
+) -> list[SiemTechniqueStat]:
+    rows = db.execute(
+        select(SiemAlert.mitre_technique_id, func.count(SiemAlert.id))
+        .where(SiemAlert.mitre_technique_id.is_not(None))
+        .group_by(SiemAlert.mitre_technique_id)
+        .order_by(func.count(SiemAlert.id).desc(), SiemAlert.mitre_technique_id.asc())
+        .limit(limit)
+    ).all()
+    return [
+        SiemTechniqueStat(technique_id=technique_id, count=count)
+        for technique_id, count in rows
+        if technique_id
+    ]
+
+
+def get_recent_siem_detections(
+    db: Session,
+    limit: int = 8,
+) -> list[RecentSiemDetectionItem]:
+    rows = db.execute(
+        select(SiemAlert, Asset)
+        .outerjoin(Asset, SiemAlert.asset_id == Asset.id)
+        .order_by(SiemAlert.date_detection.desc())
+        .limit(limit)
+    ).all()
+    return [
+        RecentSiemDetectionItem(
+            alert_id=siem_alert.id,
+            asset_id=asset.id if asset else None,
+            asset_name=asset.name if asset else None,
+            agent_name=siem_alert.agent_name,
+            mitre_technique_id=siem_alert.mitre_technique_id,
+            mitre_tactic=siem_alert.mitre_tactic,
+            description=short_text(siem_alert.description, max_length=120),
+            rule_level=siem_alert.rule_level,
+            date_detection=siem_alert.date_detection,
+        )
+        for siem_alert, asset in rows
+    ]
+
+
 def count_all(db: Session, model) -> int:
     return db.scalar(select(func.count(model.id))) or 0
 
@@ -407,6 +498,15 @@ def short_error(value: str | None, max_length: int = 180) -> str | None:
     return cleaned[: max_length - 3].rstrip() + "..."
 
 
+def short_text(value: str | None, max_length: int = 120) -> str | None:
+    if not value:
+        return None
+    cleaned = " ".join(value.split())
+    if len(cleaned) <= max_length:
+        return cleaned
+    return cleaned[: max_length - 3].rstrip() + "..."
+
+
 def criticality_tone(value: AssetCriticality | str | None) -> str:
     normalized = enum_value(value)
     return {
@@ -434,6 +534,18 @@ def severity_tone(value: str | None) -> str:
     }.get(str(value or "").upper(), "tone-neutral")
 
 
+def siem_level_tone(level: int | None) -> str:
+    if level is None:
+        return "tone-neutral"
+    if level >= 12:
+        return "tone-critical"
+    if level >= 7:
+        return "tone-warning"
+    if level >= 3:
+        return "tone-info"
+    return "tone-success"
+
+
 def format_datetime(value: datetime | None) -> str:
     if value is None:
         return "-"
@@ -454,6 +566,7 @@ __all__ = [
     "get_recent_treatments",
     "get_recent_notifications",
     "get_sync_summary",
+    "get_siem_dashboard_stats",
     "alert_priority_tone",
     "alert_status_label",
     "alert_status_tone",
@@ -462,5 +575,6 @@ __all__ = [
     "criticality_tone",
     "sync_status_tone",
     "severity_tone",
+    "siem_level_tone",
     "format_datetime",
 ]

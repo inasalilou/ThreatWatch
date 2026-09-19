@@ -9,11 +9,15 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum, Index, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+
+if TYPE_CHECKING:
+    from app.models.siem_alert import SiemAlert
 
 
 class AssetType(str, enum.Enum):
@@ -98,6 +102,11 @@ class Asset(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    siem_alerts: Mapped[list["SiemAlert"]] = relationship(
+        back_populates="asset",
+        order_by="SiemAlert.date_detection.desc()",
     )
 
     def __repr__(self) -> str:
